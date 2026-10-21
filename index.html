@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Lịch sử Đảng - Chương 1 (1930-1945)</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f0f4f8;color:#1f2937}
+.container{max-width:900px;margin:0 auto;padding:20px}
+.card{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:24px;margin-bottom:20px}
+h1{margin-top:0;color:#1d4ed8}
+h2{margin-top:0}
+.btn{background:#2563eb;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:15px}
+.btn:hover{background:#1d4ed8}
+.btn:disabled{background:#9ca3af;cursor:not-allowed}
+.btn.secondary{background:#6b7280}
+.btn.secondary:hover{background:#4b5563}
+.btn.success{background:#16a34a}
+.btn.success:hover{background:#15803d}
+.btn.danger{background:#dc2626}
+.btn.danger:hover{background:#b91c1c}
+.hidden{display:none!important}
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.timer{font-size:22px;font-weight:bold;color:#dc2626;font-variant-numeric:tabular-nums}
+.timer.warn{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.4}}
+.progress{height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;margin:12px 0}
+.progress div{height:100%;background:#2563eb;width:0;transition:width .3s}
+.qtext{font-size:18px;font-weight:600;margin:8px 0 12px}
+.option{display:block;width:100%;text-align:left;padding:12px 16px;margin:8px 0;border:2px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font-size:16px;color:#1f2937}
+.option:hover{border-color:#93c5fd}
+.option.selected{border-color:#2563eb;background:#eff6ff;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:8px;margin-top:12px}
+.qbtn{padding:8px 0;border:1px solid #d1d5db;border-radius:6px;background:#fff;cursor:pointer}
+.qbtn.answered{background:#22c55e;color:#fff;border-color:#22c55e}
+.qbtn.current{outline:3px solid #2563eb;outline-offset:1px}
+.nav{display:flex;justify-content:space-between;margin-top:16px;gap:10px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:14px}
+th{background:#f9fafb}
+.review-item{border-left:5px solid #9ca3af;padding:10px 14px;margin:12px 0;background:#f9fafb;border-radius:6px;line-height:1.6}
+.review-item.ok{border-color:#22c55e}
+.review-item.bad{border-color:#dc2626}
+.correct-text{color:#15803d;font-weight:bold}
+.wrong-text{color:#dc2626;font-weight:bold}
+.score{font-size:48px;font-weight:bold;color:#2563eb;text-align:center;margin:10px 0}
+.info{color:#4b5563;line-height:1.7}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- TRANG CHỦ -->
+  <div id="home">
+    <div class="card">
+      <h1>Quiz Lịch sử Đảng Cộng sản Việt Nam</h1>
+      <p class="info"><b>Chương 1: Đảng Cộng sản Việt Nam ra đời và lãnh đạo đấu tranh giành chính quyền (1930-1945)</b></p>
+      <div class="info">
+        <p>• Mỗi bài gồm <b>30 câu</b>, lấy ngẫu nhiên từ ngân hàng câu hỏi của Chương 1.</p>
+        <p>• Mỗi câu có <b>4 đáp án</b>, chỉ có <b>1 đáp án đúng</b>.</p>
+        <p>• Thời gian làm bài: <b>50 phút</b>. Hết giờ bài sẽ được nộp tự động.</p>
+        <p>• Thang điểm: <b>30 điểm</b> (mỗi câu đúng được 1 điểm).</p>
+      </div>
+      <div class="actions">
+        <button class="btn success" onclick="startQuiz()">Bắt đầu làm bài</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="header">
+        <h2>Lịch sử điểm</h2>
+        <button class="btn danger" onclick="clearHistory()">Xóa lịch sử</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr><th>Lần</th><th>Thời gian nộp</th><th>Điểm</th><th>Số câu đúng</th><th>Thời gian làm</th></tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MÀN HÌNH LÀM BÀI -->
+  <div id="quiz" class="hidden">
+    <div class="card">
+      <div class="header">
+        <div id="progressLabel" style="font-weight:600"></div>
+        <div id="timer" class="timer">50:00</div>
+      </div>
+      <div class="progress"><div id="progressBar"></div></div>
+      <div class="qtext" id="qText"></div>
+      <div id="options"></div>
+      <div class="nav">
+        <button class="btn secondary" id="prevBtn" onclick="prevQ()">← Câu trước</button>
+        <button class="btn danger" onclick="submitQuiz(false)">Nộp bài</button>
+        <button class="btn" id="nextBtn" onclick="nextQ()">Câu sau →</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2 style="font-size:17px">Danh sách câu hỏi</h2>
+      <p class="info" style="margin:4px 0">Ô xanh là câu đã chọn đáp án.</p>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+
+  <!-- KẾT QUẢ -->
+  <div id="result" class="hidden">
+    <div class="card">
+      <h1>Kết quả bài làm</h1>
+      <div class="score" id="scoreText"></div>
+      <p id="resultInfo" class="info" style="text-align:center"></p>
+      <div class="actions" style="justify-content:center">
+        <button class="btn success" onclick="startQuiz()">Làm bài mới</button>
+        <button class="btn secondary" onclick="goHome()">Về trang chủ</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Chi tiết từng câu</h2>
+      <div id="reviewList"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const BANK = [
+  {q:"Hội nghị hợp nhất các tổ chức cộng sản thành lập Đảng diễn ra ở đâu?", a:"Hương Cảng (Trung Quốc)", w:["Quảng Châu (Trung Quốc)","Ma Cao (Trung Quốc)","Bangkok (Thái Lan)"]},
+  {q:"Hội nghị thành lập Đảng do ai chủ trì?", a:"Nguyễn Ái Quốc", w:["Trần Phú","Trịnh Đình Cửu","Hồ Tùng Mậu"]},
+  {q:"Đảng Cộng sản Việt Nam ra đời vào năm nào?", a:"1930", w:["1920","1925","1945"]},
+  {q:"Các tổ chức cộng sản nào tham dự Hội nghị hợp nhất thành lập Đảng đầu năm 1930?", a:"Đông Dương Cộng sản Đảng, An Nam Cộng sản Đảng và Đông Dương Cộng sản Liên đoàn", w:["Đông Dương Cộng sản Đảng và An Nam Cộng sản Đảng","An Nam Cộng sản Đảng và Đông Dương Cộng sản Liên đoàn","Đông Dương Cộng sản Đảng và Đông Dương Cộng sản Liên đoàn"]},
+  {q:"Tổ chức Việt Nam Cách mạng Thanh niên được thành lập năm 1925 tại đâu?", a:"Quảng Châu (Trung Quốc)", w:["Hương Cảng (Trung Quốc)","Ma Cao (Trung Quốc)","Hà Nội"]},
+  {q:"Nguyễn Ái Quốc đọc Sơ thảo luận cương của Lênin về vấn đề dân tộc và thuộc địa vào thời gian nào?", a:"Tháng 7/1920", w:["Năm 1911","Năm 1917","Tháng 6/1919"]},
+  {q:"Nguyễn Ái Quốc thay mặt người Việt yêu nước ở Pháp đưa bản Yêu sách 8 điểm đến Hội nghị Véc-xây năm nào?", a:"1919", w:["1911","1920","1925"]},
+  {q:"Tác phẩm Đường Kách mệnh được xuất bản năm nào?", a:"1927", w:["1921","1925","1930"]},
+  {q:"Năm 1924, Hồ Chí Minh đến Trung Quốc và thành lập tổ chức nào?", a:"Hội Việt Nam Cách mạng Thanh niên", w:["Việt Nam Quang Phục Hội","Việt Nam Quốc dân Đảng","Tân Việt Cách mạng Đảng"]},
+  {q:"Cơ quan ngôn luận của Hội Việt Nam Cách mạng Thanh niên là gì?", a:"Báo Thanh Niên", w:["Báo Tiếng dân","Báo Đông Dương","Báo Nhân Dân"]},
+  {q:"Theo Hồ Chí Minh, cách mạng Việt Nam chỉ có thể đi theo con đường nào?", a:"Cách mạng vô sản", w:["Cách mạng tư sản kiểu cũ","Cải lương, cải cách","Đấu tranh nghị trường"]},
+  {q:"Trong Chánh cương vắn tắt, Đảng chủ trương tiến hành cuộc cách mạng nào?", a:"Cách mạng tư sản dân quyền tiến tới xã hội cộng sản, bỏ qua giai đoạn tư bản chủ nghĩa", w:["Cách mạng xã hội chủ nghĩa ngay lập tức","Cải cách ruộng đất trước, giành độc lập sau","Cải cách văn hóa, xã hội không dùng bạo lực"]},
+  {q:"Theo Chánh cương vắn tắt, lực lượng lãnh đạo cách mạng là ai?", a:"Giai cấp vô sản, thông qua Đảng Cộng sản", w:["Giai cấp tư sản dân tộc","Giai cấp địa chủ phong kiến","Tầng lớp tiểu tư sản trí thức"]},
+  {q:"Chánh cương vắn tắt chủ trương chia ruộng đất tịch thu của đế quốc cho ai?", a:"Dân cày nghèo", w:["Địa chủ lớn","Tư sản dân tộc","Công nhân đô thị"]},
+  {q:"Chánh cương vắn tắt đề ra mục tiêu chính trị nào?", a:"Dựng ra chính phủ công nông binh, tổ chức quân đội công nông", w:["Thiết lập chế độ quân chủ lập hiến","Thành lập chính phủ liên hiệp với thực dân Pháp","Thiết lập chế độ cộng hòa tư sản"]},
+  {q:"Đảng ra đời là kết quả tất yếu của cuộc đấu tranh nào?", a:"Đấu tranh dân tộc và đấu tranh giai cấp", w:["Đấu tranh tôn giáo","Đấu tranh kinh tế thuần túy","Đấu tranh nghị trường ở đô thị"]},
+  {q:"Sự ra đời của Đảng là sản phẩm của sự kết hợp nào?", a:"Chủ nghĩa Mác-Lênin với phong trào công nhân và phong trào yêu nước", w:["Chủ nghĩa tư bản với phong trào tư sản","Chủ nghĩa Tam dân với phong trào nông dân","Chủ nghĩa xã hội không tưởng với phong trào tiểu tư sản"]},
+  {q:"Sự kiện nào làm biến đổi sâu sắc tình hình thế giới đầu thế kỷ XX?", a:"Cách mạng Tháng Mười Nga thành công", w:["Chiến tranh Pháp-Phổ","Cách mạng công nghiệp ở Anh","Chiến tranh Nha phiến"]},
+  {q:"Quốc tế Cộng sản ra đời vào năm nào?", a:"1919", w:["1917","1920","1930"]},
+  {q:"Quân Pháp tấn công Đà Nẵng mở đầu quá trình xâm lược Việt Nam vào năm nào?", a:"1858", w:["1862","1884","1897"]},
+  {q:"Cuộc khai thác thuộc địa lần thứ nhất của Pháp diễn ra trong giai đoạn nào?", a:"1897-1914", w:["1919-1929","1884-1897","1930-1939"]},
+  {q:"Cuộc khai thác thuộc địa lần thứ hai của Pháp diễn ra trong giai đoạn nào?", a:"1919-1929", w:["1897-1914","1884-1897","1930-1939"]},
+  {q:"Pháp thực hiện chính sách cai trị chủ yếu nào đối với Việt Nam?", a:"Chia để trị", w:["Tự trị địa phương","Liên bang Đông Dương tự quản","Hòa giải dân tộc"]},
+  {q:"Hai mâu thuẫn cơ bản trong xã hội Việt Nam thời thuộc Pháp là gì?", a:"Dân tộc với đế quốc xâm lược, và nông dân với địa chủ phong kiến", w:["Công nhân với tư sản, và địa chủ với tư sản","Dân tộc với phong kiến, và tư sản với công nhân","Nông dân với tư sản, và địa chủ với đế quốc"]},
+  {q:"Nhiệm vụ của cách mạng Việt Nam trong giai đoạn này gồm những gì?", a:"Đánh đổ thực dân giành độc lập dân tộc và xóa bỏ chế độ phong kiến", w:["Xây dựng chủ nghĩa xã hội và công nghiệp hóa","Thiết lập chế độ cộng hòa tư sản","Đấu tranh đòi tự trị trong khuôn khổ Liên bang Đông Dương"]},
+  {q:"Giai cấp nào được xác định là lực lượng lãnh đạo cách mạng Việt Nam?", a:"Giai cấp công nhân", w:["Giai cấp nông dân","Giai cấp tư sản dân tộc","Tầng lớp tiểu tư sản"]},
+  {q:"Phong trào Cần Vương do ai lãnh đạo?", a:"Vua Hàm Nghi (cùng Tôn Thất Thuyết)", w:["Đề Thám","Phan Bội Châu","Phan Châu Trinh"]},
+  {q:"Phong trào Yên Thế (Hoàng Hoa Thám) thuộc khuynh hướng yêu nước nào?", a:"Nông dân", w:["Phong kiến","Tư sản","Vô sản"]},
+  {q:"Phan Bội Châu chủ trương đấu tranh chống Pháp bằng phương pháp nào?", a:"Bạo động vũ trang", w:["Cải cách văn hóa, xã hội","Cầu viện nước ngoài bằng ngoại giao","Đấu tranh nghị trường"]},
+  {q:"Phan Châu Trinh chủ trương gì?", a:"Vận động cải cách văn hóa, xã hội, phản đối đấu tranh vũ trang", w:["Lãnh đạo khởi nghĩa vũ trang chống Pháp","Thành lập Việt Nam Quang Phục Hội","Thành lập Đảng Cộng sản Đông Dương"]},
+  {q:"Nguyễn Thái Học lãnh đạo khởi nghĩa Yên Bái (02/1930) thuộc tổ chức nào?", a:"Việt Nam Quốc dân Đảng", w:["Đông Dương Cộng sản Đảng","Tân Việt Cách mạng Đảng","Việt Nam Quang Phục Hội"]},
+  {q:"Nguyên nhân chủ yếu khiến các phong trào yêu nước trước 1930 đều thất bại là gì?", a:"Chưa có đường lối cách mạng đúng đắn", w:["Thực dân Pháp quá mạnh về mọi mặt","Nhân dân không tham gia đông đảo","Không có sự ủng hộ của thế giới"]},
+  {q:"Luận cương chính trị tháng 10/1930 đổi tên Đảng thành gì?", a:"Đảng Cộng sản Đông Dương", w:["Đảng Cộng sản Việt Nam","Đảng Lao động Việt Nam","Đảng Dân chủ Đông Dương"]},
+  {q:"Văn kiện nào nhấn mạnh vấn đề thổ địa là cái cốt của cách mạng tư sản dân quyền?", a:"Luận cương chính trị tháng 10/1930", w:["Chánh cương vắn tắt, sách lược vắn tắt","Chỉ thị thành lập Hội phản đế đồng minh (18/11/1930)","Xung quanh vấn đề chiến sách mới của Đảng (12/1930)"]},
+  {q:"Theo Luận cương chính trị tháng 10/1930, lực lượng cách mạng là ai?", a:"Công nhân và nông dân", w:["Công nhân và tư sản","Nông dân và địa chủ","Tiểu tư sản và trí thức"]},
+  {q:"Hạn chế lớn của Luận cương chính trị tháng 10/1930 là gì?", a:"Chưa coi trọng vấn đề giải phóng dân tộc", w:["Chưa coi trọng cách mạng ruộng đất","Chưa xác định vai trò giai cấp công nhân","Quá coi trọng đấu tranh nghị trường"]},
+  {q:"Cao trào Xô viết Nghệ Tĩnh diễn ra chủ yếu ở đâu?", a:"Nghệ An - Hà Tĩnh", w:["Thanh Hóa - Quảng Bình","Nam Kỳ","Hà Nội - Hải Phòng"]},
+  {q:"Chính quyền Xô viết Nghệ Tĩnh được thành lập vào tháng nào năm 1930?", a:"Tháng 9/1930", w:["Tháng 1/1930","Tháng 4/1930","Tháng 5/1930"]},
+  {q:"Cao trào cách mạng 1930-1931 có khoảng bao nhiêu cuộc đấu tranh nổ ra trên cả nước?", a:"Gần 200 cuộc", w:["Khoảng 20 cuộc","Khoảng 50 cuộc","Khoảng 1000 cuộc"]},
+  {q:"Một trong những nguyên nhân dẫn đến cao trào cách mạng 1930-1931 là gì?", a:"Khủng hoảng kinh tế thế giới 1929-1933", w:["Chiến tranh thế giới thứ nhất bùng nổ","Pháp giảm thuế cho nông dân","Cách mạng Tháng Mười Nga 1917"]},
+  {q:"Đại hội I của Đảng năm 1935 diễn ra ở đâu?", a:"Ma Cao (Trung Quốc)", w:["Hương Cảng (Trung Quốc)","Quảng Châu (Trung Quốc)","Mát-xcơ-va (Liên Xô)"]},
+  {q:"Tại Đại hội I (3/1935), ai được đề cử làm Tổng Bí thư?", a:"Lê Hồng Phong", w:["Trần Phú","Hà Huy Tập","Nguyễn Văn Cừ"]},
+  {q:"Khẩu hiệu chính của phong trào dân chủ 1936-1939 là gì?", a:"Tự do, dân chủ, cơm áo, hòa bình", w:["Độc lập, tự do, chia ruộng đất cho dân cày","Đánh đổ đế quốc, phong kiến","Ruộng đất về tay nông dân"]},
+  {q:"Hội nghị Trung ương tháng 3/1938 do Tổng Bí thư Nguyễn Văn Cừ chủ trì quyết định thành lập tổ chức nào?", a:"Mặt trận Dân chủ Đông Dương", w:["Việt Minh","Mặt trận Liên Việt","Mặt trận Dân tộc thống nhất phản đế Đông Dương"]},
+  {q:"Phong trào dân chủ 1936-1939 được coi là gì?", a:"Tổng diễn tập lần thứ hai cho Cách mạng Tháng Tám", w:["Cuộc khởi nghĩa vũ trang đầu tiên","Thời kỳ đấu tranh nghị trường thuần túy","Cuộc cách mạng vô sản thắng lợi đầu tiên"]},
+  {q:"Phong trào dân chủ 1936-1939 tổ chức đấu tranh theo hình thức nào?", a:"Kết hợp công khai, nửa công khai và bí mật", w:["Chỉ công khai, hợp pháp","Chỉ bí mật, bất hợp pháp","Chỉ nửa công khai, nửa hợp pháp"]},
+  {q:"Theo Nguyễn Ái Quốc, khi nào Đảng mới giành được địa vị lãnh đạo?", a:"Khi quần chúng rộng rãi thừa nhận chính sách đúng đắn và năng lực lãnh đạo của Đảng", w:["Khi có đủ vũ khí trong tay","Khi được quốc tế công nhận","Khi có số lượng đảng viên đông nhất"]},
+  {q:"Kinh nghiệm đầu tiên được rút ra từ phong trào cách mạng 1936-1939 là gì?", a:"Xác định đúng nhiệm vụ", w:["Đoàn kết các lực lượng","Nhiều hình thức đấu tranh","Dựa vào vũ trang bạo lực"]},
+  {q:"Chiến tranh thế giới thứ hai bùng nổ khi nào?", a:"Ngày 1/9/1939", w:["Ngày 1/9/1938","Ngày 1/9/1940","Ngày 1/9/1941"]},
+  {q:"Hội nghị Trung ương 6 (11/1939) quyết định tổ chức Đảng theo hình thức nào?", a:"Bí mật, bất hợp pháp", w:["Công khai, hợp pháp","Nửa công khai, nửa hợp pháp","Hợp pháp, bán công khai"]},
+  {q:"Mục tiêu trước mắt của Hội nghị Trung ương 6 (11/1939) là gì?", a:"Đánh đổ đế quốc Pháp, giành độc lập dân tộc", w:["Xây dựng chủ nghĩa xã hội","Chia ruộng đất cho nông dân","Thành lập nước Việt Nam Dân chủ Cộng hòa"]},
+  {q:"Hội nghị Trung ương 7 (11/1940) xác định kẻ thù chính của cách mạng là ai?", a:"Pháp - Nhật", w:["Thực dân Pháp","Phát xít Nhật","Đế quốc Mỹ và Anh"]},
+  {q:"Hội nghị Trung ương 7 (11/1940) quyết định đình chỉ việc gì?", a:"Khởi nghĩa Nam Kỳ", w:["Khởi nghĩa Bắc Sơn","Khởi nghĩa Yên Bái","Tổng khởi nghĩa tháng Tám"]},
+  {q:"Nguyễn Ái Quốc về nước ngày nào?", a:"28/1/1941", w:["6/1/1930","19/8/1945","2/9/1945"]},
+  {q:"Hội nghị Trung ương 8 (5/1941) xác định nhiệm vụ trọng tâm là gì?", a:"Chuẩn bị khởi nghĩa vũ trang", w:["Đấu tranh nghị trường","Xây dựng chính quyền Xô viết","Tổ chức bãi công trên cả nước"]},
+  {q:"Hội nghị Trung ương 8 tạm gác khẩu hiệu nào để tập trung cho độc lập dân tộc?", a:"Chia ruộng đất cho dân cày", w:["Đánh đổ thực dân Pháp","Đánh đuổi phát xít Nhật","Lập chính phủ công nông"]},
+  {q:"Mặt trận được Hội nghị Trung ương 8 tập hợp rộng rãi mọi lực lượng dân tộc là gì?", a:"Mặt trận Việt Minh", w:["Mặt trận Dân chủ Đông Dương","Mặt trận Liên Việt","Mặt trận Dân tộc thống nhất phản đế Đông Dương"]},
+  {q:"Hội nghị Trung ương 8 chủ trương thành lập nhà nước nào?", a:"Việt Nam Dân chủ Cộng hòa", w:["Việt Nam Dân chủ Nhân dân","Cộng hòa xã hội chủ nghĩa Việt Nam","Liên bang Đông Dương"]},
+  {q:"Đội Việt Nam tuyên truyền giải phóng quân được thành lập vào ngày nào?", a:"22/12/1944", w:["19/8/1945","22/12/1946","2/9/1945"]},
+  {q:"Việt Nam giải phóng quân được hình thành từ hai lực lượng nào vào tháng 5/1945?", a:"Việt Nam tuyên truyền giải phóng quân và Cứu quốc quân", w:["Đội du kích Bắc Sơn và Cứu quốc quân","Quân đội Quốc gia và Đội thiếu niên","Hồng quân Liên Xô và Cứu quốc quân"]},
+  {q:"Chỉ thị nào của Ban Thường vụ Trung ương Đảng ngày 12/3/1945 có nội dung Nhật - Pháp bắn nhau và hành động của chúng ta?", a:"Chỉ thị ngày 12/3/1945", w:["Chỉ thị Kháng chiến toàn quốc (12/12/1946)","Đề cương văn hóa Việt Nam (1943)","Tuyên ngôn độc lập (2/9/1945)"]},
+  {q:"Theo chỉ thị ngày 12/3/1945, kẻ thù chính, duy nhất của cách mạng là ai?", a:"Phát xít Nhật", w:["Thực dân Pháp","Phát xít Đức","Đế quốc Mỹ"]},
+  {q:"Hội nghị nào quyết định phát động toàn dân nổi dậy Tổng khởi nghĩa giành chính quyền?", a:"Hội nghị toàn quốc của Đảng (13-15/8/1945)", w:["Hội nghị Ban Chấp hành Trung ương Đảng","Hội nghị Ban Thường vụ Trung ương Đảng","Hội nghị Tổng bộ Việt Minh"]},
+  {q:"Hội nghị toàn quốc của Đảng (13-15/8/1945) diễn ra ở đâu?", a:"Đình Tân Trào, Sơn Dương (Tuyên Quang)", w:["Đình Bảng, Bắc Ninh","Pác Bó, Cao Bằng","Hương Cảng, Trung Quốc"]},
+  {q:"Tại Đại hội quốc dân Tân Trào (16/8/1945), ai được bầu làm Chủ tịch Ủy ban Giải phóng dân tộc?", a:"Hồ Chí Minh", w:["Trường Chinh","Võ Nguyên Giáp","Phạm Văn Đồng"]},
+  {q:"Bảo Đại thoái vị vào ngày nào?", a:"30/8/1945", w:["19/8/1945","25/8/1945","2/9/1945"]},
+  {q:"Nhân dân Huế khởi nghĩa vào ngày nào?", a:"23/8/1945", w:["19/8/1945","25/8/1945","30/8/1945"]},
+  {q:"Nhân dân Sài Gòn khởi nghĩa vào ngày nào?", a:"25/8/1945", w:["19/8/1945","23/8/1945","30/8/1945"]},
+  {q:"Chủ tịch Hồ Chí Minh đọc Tuyên ngôn độc lập và nước Việt Nam Dân chủ Cộng hòa ra đời vào ngày nào?", a:"2/9/1945", w:["19/8/1945","16/8/1945","30/8/1945"]},
+  {q:"Cách mạng Tháng Tám năm 1945 được xác định là cuộc cách mạng nào?", a:"Cách mạng giải phóng dân tộc điển hình", w:["Cách mạng xã hội chủ nghĩa","Cách mạng dân chủ tư sản kiểu cũ","Cải cách ruộng đất"]},
+  {q:"Ý nghĩa quốc tế nổi bật của Cách mạng Tháng Tám là gì?", a:"Lần đầu tiên cách mạng giải phóng dân tộc theo con đường vô sản thắng lợi ở một nước thuộc địa", w:["Chấm dứt hoàn toàn chiến tranh thế giới","Thiết lập trật tự thế giới mới do Mỹ đứng đầu","Đưa Liên Xô trở thành cường quốc duy nhất"]},
+  {q:"Bài học hàng đầu của Cách mạng Tháng Tám về chỉ đạo chiến lược là gì?", a:"Giương cao ngọn cờ độc lập dân tộc, kết hợp đúng đắn hai nhiệm vụ chống đế quốc và chống phong kiến", w:["Toàn dân nổi dậy trên nền tảng khối liên minh công nông","Lợi dụng mâu thuẫn trong hàng ngũ kẻ thù","Nắm vững nghệ thuật khởi nghĩa và chọn đúng thời cơ"]},
+  {q:"Bài học về phương pháp cách mạng trong Cách mạng Tháng Tám là gì?", a:"Kết hợp đấu tranh chính trị với đấu tranh vũ trang", w:["Chỉ dùng đấu tranh nghị trường","Chỉ dùng đấu tranh vũ trang","Chỉ dùng ngoại giao để giành chính quyền"]},
+  {q:"Suốt 15 năm đấu tranh cách mạng 1930-1945, Đảng đã lãnh đạo hoàn thành mục tiêu nào?", a:"Giành độc lập, thiết lập nhà nước dân chủ nhân dân", w:["Hoàn thành công nghiệp hóa đất nước","Thống nhất đất nước","Xây dựng chủ nghĩa xã hội ở miền Bắc"]}
+];
+
+const QUESTION_COUNT = 30;
+const TIME_LIMIT = 50 * 60;
+const HISTORY_KEY = "quizHistory";
+let session = null;
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function showScreen(id) {
+  ["home", "quiz", "result"].forEach(s => document.getElementById(s).classList.toggle("hidden", s !== id));
+}
+
+function fmt(sec) {
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+}
+
+function getHistory() {
+  return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+}
+
+function renderHistory() {
+  const h = getHistory();
+  const tb = document.getElementById("historyBody");
+  if (!h.length) {
+    tb.innerHTML = '<tr><td colspan="5">Chưa có lịch sử làm bài.</td></tr>';
+    return;
+  }
+  tb.innerHTML = h.map((r, i) =>
+    `<tr><td>${h.length - i}</td><td>${r.date}</td><td><b>${r.score}</b>/30</td><td>${r.correct}/${r.total}</td><td>${fmt(r.timeUsed)}</td></tr>`
+  ).join("");
+}
+
+function clearHistory() {
+  if (confirm("Bạn có chắc muốn xóa toàn bộ lịch sử điểm?")) {
+    localStorage.removeItem(HISTORY_KEY);
+    renderHistory();
+  }
+}
+
+function goHome() {
+  renderHistory();
+  showScreen("home");
+}
+
+function startQuiz() {
+  const items = shuffle([...BANK]).slice(0, QUESTION_COUNT).map(x => {
+    const opts = shuffle([x.a, ...x.w]);
+    return { q: x.q, opts, correct: opts.indexOf(x.a) };
+  });
+  const now = Date.now();
+  session = {
+    items,
+    answers: Array(items.length).fill(-1),
+    current: 0,
+    start: now,
+    end: now + TIME_LIMIT * 1000,
+    timer: null,
+    done: false
+  };
+  showScreen("quiz");
+  renderQuestion();
+  tick();
+  session.timer = setInterval(tick, 500);
+}
+
+function tick() {
+  if (!session || session.done) return;
+  const left = Math.max(0, Math.ceil((session.end - Date.now()) / 1000));
+  const t = document.getElementById("timer");
+  t.textContent = fmt(left);
+  t.classList.toggle("warn", left <= 300);
+  if (left <= 0) submitQuiz(true);
+}
+
+function renderQuestion() {
+  const s = session, i = s.current, it = s.items[i];
+  const answered = s.answers.filter(a => a >= 0).length;
+  document.getElementById("progressLabel").textContent = `Câu ${i + 1}/${s.items.length} · Đã làm ${answered}/${s.items.length}`;
+  document.getElementById("progressBar").style.width = (answered / s.items.length * 100) + "%";
+  document.getElementById("qText").textContent = `Câu ${i + 1}. ${it.q}`;
+
+  const box = document.getElementById("options");
+  box.innerHTML = "";
+  it.opts.forEach((o, k) => {
+    const b = document.createElement("button");
+    b.className = "option" + (s.answers[i] === k ? " selected" : "");
+    b.textContent = String.fromCharCode(65 + k) + ". " + o;
+    b.onclick = () => { s.answers[i] = k; renderQuestion(); };
+    box.appendChild(b);
+  });
+
+  document.getElementById("prevBtn").disabled = i === 0;
+  document.getElementById("nextBtn").disabled = i === s.items.length - 1;
+  renderGrid();
+}
+
+function renderGrid() {
+  const s = session;
+  document.getElementById("grid").innerHTML = s.items.map((_, i) =>
+    `<button class="qbtn ${s.answers[i] >= 0 ? "answered" : ""} ${i === s.current ? "current" : ""}" onclick="gotoQ(${i})">${i + 1}</button>`
+  ).join("");
+}
+
+function gotoQ(i) {
+  session.current = i;
+  renderQuestion();
+}
+
+function nextQ() {
+  if (session.current < session.items.length - 1) gotoQ(session.current + 1);
+}
+
+function prevQ() {
+  if (session.current > 0) gotoQ(session.current - 1);
+}
+
+function submitQuiz(auto) {
+  if (!session || session.done) return;
+  if (!auto) {
+    const unanswered = session.answers.filter(a => a < 0).length;
+    const msg = unanswered
+      ? `Còn ${unanswered} câu chưa trả lời. Bạn vẫn muốn nộp bài?`
+      : "Bạn chắc chắn muốn nộp bài?";
+    if (!confirm(msg)) return;
+  }
+  session.done = true;
+  clearInterval(session.timer);
+
+  const s = session, n = s.items.length;
+  const correct = s.items.reduce((c, it, i) => c + (s.answers[i] === it.correct ? 1 : 0), 0);
+  const score = Math.round(correct / n * 30 * 100) / 100;
+  const timeUsed = Math.min(TIME_LIMIT, Math.round((Date.now() - s.start) / 1000));
+  const rec = { date: new Date().toLocaleString("vi-VN"), score, correct, total: n, timeUsed };
+
+  const h = getHistory();
+  h.unshift(rec);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+
+  showResult(rec, auto);
+}
+
+function showResult(rec, auto) {
+  showScreen("result");
+  document.getElementById("scoreText").textContent = `${rec.score} / 30`;
+  document.getElementById("resultInfo").textContent =
+    `Đúng ${rec.correct}/${rec.total} câu · Thời gian làm: ${fmt(rec.timeUsed)}` +
+    (auto ? " (hết giờ, bài được nộp tự động)" : "");
+
+  const s = session;
+  document.getElementById("reviewList").innerHTML = s.items.map((it, i) => {
+    const a = s.answers[i];
+    const ok = a === it.correct;
+    const chosen = a < 0
+      ? "<i>Chưa trả lời</i>"
+      : `<span class="${ok ? "correct-text" : "wrong-text"}">${String.fromCharCode(65 + a)}. ${it.opts[a]}</span>`;
+    return `<div class="review-item ${ok ? "ok" : "bad"}">
+      <b>Câu ${i + 1}. ${it.q}</b><br>
+      Bạn chọn: ${chosen}<br>
+      Đáp án đúng: <span class="correct-text">${String.fromCharCode(65 + it.correct)}. ${it.opts[it.correct]}</span>
+    </div>`;
+  }).join("");
+}
+
+renderHistory();
+showScreen("home");
+</script>
+</body>
+</html>
