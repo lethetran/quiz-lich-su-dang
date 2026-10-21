@@ -63,9 +63,8 @@ th{background:#f9fafb}
         <p>• Thời gian làm bài: <b>50 phút</b>. Hết giờ bài sẽ được nộp tự động.</p>
         <p>• Thang điểm: <b>30 điểm</b> (mỗi câu đúng được 1 điểm).</p>
       </div>
-      <div class="actions">
-        <button class="btn success" onclick="startQuiz()">Bắt đầu làm bài</button>
-      </div>
+      <p class="info"><b>Chọn chương để làm bài:</b></p>
+      <div class="actions" id="chapterButtons"></div>
     </div>
 
     <div class="card">
@@ -114,7 +113,7 @@ th{background:#f9fafb}
       <div class="score" id="scoreText"></div>
       <p id="resultInfo" class="info" style="text-align:center"></p>
       <div class="actions" style="justify-content:center">
-        <button class="btn success" onclick="startQuiz()">Làm bài mới</button>
+        <button class="btn success" onclick="startQuiz(currentChapter)">Làm bài mới</button>
         <button class="btn secondary" onclick="goHome()">Về trang chủ</button>
       </div>
     </div>
@@ -204,6 +203,15 @@ const BANK = [
   {q:"Suốt 15 năm đấu tranh cách mạng 1930-1945, Đảng đã lãnh đạo hoàn thành mục tiêu nào?", a:"Giành độc lập, thiết lập nhà nước dân chủ nhân dân", w:["Hoàn thành công nghiệp hóa đất nước","Thống nhất đất nước","Xây dựng chủ nghĩa xã hội ở miền Bắc"]}
 ];
 
+const CHAPTERS = [
+  {name:"Chương 1: Đảng Cộng sản Việt Nam ra đời và lãnh đạo đấu tranh giành chính quyền (1930-1945)", bank:BANK},
+  {name:"Giới thiệu học phần", bank:[]},
+  {name:"Chương Nhập môn", bank:[]},
+  {name:"Chương 2", bank:[]},
+  {name:"Chương 3", bank:[]}
+];
+let currentChapter = 0;
+
 const QUESTION_COUNT = 30;
 const TIME_LIMIT = 50 * 60;
 const HISTORY_KEY = "quizHistory";
@@ -254,8 +262,15 @@ function goHome() {
   showScreen("home");
 }
 
-function startQuiz() {
-  const items = shuffle([...BANK]).slice(0, QUESTION_COUNT).map(x => {
+function renderChapters() {
+  document.getElementById("chapterButtons").innerHTML = CHAPTERS.map((c, i) =>
+    `<button class="btn" style="text-align:left" ${c.bank.length ? `onclick="startQuiz(${i})"` : "disabled"}>${c.name}${c.bank.length ? "" : " (chưa có câu hỏi)"}</button>`
+  ).join("");
+}
+
+function startQuiz(ci) {
+  currentChapter = ci;
+  const items = shuffle([...CHAPTERS[ci].bank]).slice(0, QUESTION_COUNT).map(x => {
     const opts = shuffle([x.a, ...x.w]);
     return { q: x.q, opts, correct: opts.indexOf(x.a) };
   });
@@ -375,6 +390,7 @@ function showResult(rec, auto) {
   }).join("");
 }
 
+renderChapters();
 renderHistory();
 showScreen("home");
 </script>
