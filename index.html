@@ -362,13 +362,15 @@ function showResult(rec, auto) {
   document.getElementById("reviewList").innerHTML = s.items.map((it, i) => {
     const a = s.answers[i];
     const ok = a === it.correct;
-    const chosen = a < 0
-      ? "<i>Chưa trả lời</i>"
-      : `<span class="${ok ? "correct-text" : "wrong-text"}">${String.fromCharCode(65 + a)}. ${it.opts[a]}</span>`;
+    const opts = it.opts.map((o, k) => {
+      const cls = k === it.correct ? "correct-text" : (k === a ? "wrong-text" : "");
+      const mark = k === a ? (ok ? " (bạn chọn, đúng)" : " (bạn chọn, sai)") : "";
+      return `<div class="${cls}">${String.fromCharCode(65 + k)}. ${o}${mark}</div>`;
+    }).join("");
     return `<div class="review-item ${ok ? "ok" : "bad"}">
-      <b>Câu ${i + 1}. ${it.q}</b><br>
-      Bạn chọn: ${chosen}<br>
-      Đáp án đúng: <span class="correct-text">${String.fromCharCode(65 + it.correct)}. ${it.opts[it.correct]}</span>
+      <b>Câu ${i + 1}. ${it.q}</b>
+      ${a < 0 ? "<br><i>Chưa trả lời</i>" : ""}
+      ${opts}
     </div>`;
   }).join("");
 }
