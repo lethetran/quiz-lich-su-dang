@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiz Lịch sử Đảng - Chương 1 (1930-1945)</title>
+<title>Quiz Hành vi người tiêu dùng (HVNTD)</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f0f4f8;color:#1f2937}
@@ -53,6 +53,7 @@ th{background:#f9fafb}
 .chapter-item.disabled{color:#9ca3af;cursor:not-allowed}
 .chapter-item input{width:18px;height:18px}
 .chapter-list .btn{margin-top:8px}
+.section-title{margin-top:24px;padding-top:20px;border-top:1px solid #e5e7eb}
 </style>
 </head>
 <body>
@@ -61,14 +62,16 @@ th{background:#f9fafb}
   <!-- TRANG CHỦ -->
   <div id="home">
     <div class="card">
-      <h1>Quiz Lịch sử Đảng Cộng sản Việt Nam</h1>
+      <h1>Quiz Hành vi người tiêu dùng</h1>
       <div class="info">
-        <p>• Mỗi bài gồm <b>30 câu</b>, lấy ngẫu nhiên từ các chương bạn đã chọn.</p>
         <p>• Mỗi câu có <b>4 đáp án</b>, chỉ có <b>1 đáp án đúng</b>.</p>
-        <p>• Thời gian làm bài: <b>50 phút</b>. Hết giờ bài sẽ được nộp tự động.</p>
-        <p>• Thang điểm: <b>30 điểm</b> (mỗi câu đúng được 1 điểm).</p>
+        <p>• Hết giờ bài sẽ được nộp tự động. Bài đã nộp được lưu vào lịch sử điểm.</p>
       </div>
-      <p class="info"><b>Chọn một hoặc nhiều chương (tích chọn), rồi nhấn “Bắt đầu làm bài”:</b></p>
+      <h2>Bài tổng hợp</h2>
+      <p class="info" id="mixInfo" style="margin:4px 0 10px"></p>
+      <button class="btn success" onclick="startMix()">Làm bài tổng hợp</button>
+      <h2 class="section-title">Luyện theo chương</h2>
+      <p class="info" id="chapterInfo" style="margin:4px 0 10px"></p>
       <div id="chapterButtons" class="chapter-list"></div>
     </div>
 
@@ -80,7 +83,7 @@ th{background:#f9fafb}
       <div style="overflow-x:auto">
         <table>
           <thead>
-            <tr><th>Lần</th><th>Thời gian nộp</th><th>Điểm</th><th>Số câu đúng</th><th>Thời gian làm</th></tr>
+            <tr><th>Lần</th><th>Thời gian nộp</th><th>Bài thi</th><th>Điểm</th><th>Số câu đúng</th><th>Thời gian làm</th></tr>
           </thead>
           <tbody id="historyBody"></tbody>
         </table>
@@ -93,7 +96,7 @@ th{background:#f9fafb}
     <div class="card">
       <div class="header">
         <div id="progressLabel" style="font-weight:600"></div>
-        <div id="timer" class="timer">50:00</div>
+        <div id="timer" class="timer"></div>
       </div>
       <div class="progress"><div id="progressBar"></div></div>
       <div class="qtext" id="qText"></div>
@@ -118,7 +121,7 @@ th{background:#f9fafb}
       <div class="score" id="scoreText"></div>
       <p id="resultInfo" class="info" style="text-align:center"></p>
       <div class="actions" style="justify-content:center">
-        <button class="btn success" onclick="startQuiz()">Làm bài mới</button>
+        <button class="btn success" onclick="restart()">Làm bài mới</button>
         <button class="btn secondary" onclick="goHome()">Về trang chủ</button>
       </div>
     </div>
@@ -131,237 +134,303 @@ th{background:#f9fafb}
 </div>
 
 <script>
-const BANK = [
-  {q:"Hội nghị hợp nhất các tổ chức cộng sản thành lập Đảng diễn ra ở đâu?", a:"Hương Cảng (Trung Quốc)", w:["Quảng Châu (Trung Quốc)","Ma Cao (Trung Quốc)","Bangkok (Thái Lan)"]},
-  {q:"Hội nghị thành lập Đảng do ai chủ trì?", a:"Nguyễn Ái Quốc", w:["Trần Phú","Trịnh Đình Cửu","Hồ Tùng Mậu"]},
-  {q:"Đảng Cộng sản Việt Nam ra đời vào năm nào?", a:"1930", w:["1920","1925","1945"]},
-  {q:"Các tổ chức cộng sản nào tham dự Hội nghị hợp nhất thành lập Đảng đầu năm 1930?", a:"Đông Dương Cộng sản Đảng, An Nam Cộng sản Đảng và Đông Dương Cộng sản Liên đoàn", w:["Đông Dương Cộng sản Đảng và An Nam Cộng sản Đảng","An Nam Cộng sản Đảng và Đông Dương Cộng sản Liên đoàn","Đông Dương Cộng sản Đảng và Đông Dương Cộng sản Liên đoàn"]},
-  {q:"Tổ chức Việt Nam Cách mạng Thanh niên được thành lập năm 1925 tại đâu?", a:"Quảng Châu (Trung Quốc)", w:["Hương Cảng (Trung Quốc)","Ma Cao (Trung Quốc)","Hà Nội"]},
-  {q:"Nguyễn Ái Quốc đọc Sơ thảo luận cương của Lênin về vấn đề dân tộc và thuộc địa vào thời gian nào?", a:"Tháng 7/1920", w:["Năm 1911","Năm 1917","Tháng 6/1919"]},
-  {q:"Nguyễn Ái Quốc thay mặt người Việt yêu nước ở Pháp đưa bản Yêu sách 8 điểm đến Hội nghị Véc-xây năm nào?", a:"1919", w:["1911","1920","1925"]},
-  {q:"Tác phẩm Đường Kách mệnh được xuất bản năm nào?", a:"1927", w:["1921","1925","1930"]},
-  {q:"Năm 1924, Hồ Chí Minh đến Trung Quốc và thành lập tổ chức nào?", a:"Hội Việt Nam Cách mạng Thanh niên", w:["Việt Nam Quang Phục Hội","Việt Nam Quốc dân Đảng","Tân Việt Cách mạng Đảng"]},
-  {q:"Cơ quan ngôn luận của Hội Việt Nam Cách mạng Thanh niên là gì?", a:"Báo Thanh Niên", w:["Báo Tiếng dân","Báo Đông Dương","Báo Nhân Dân"]},
-  {q:"Theo Hồ Chí Minh, cách mạng Việt Nam chỉ có thể đi theo con đường nào?", a:"Cách mạng vô sản", w:["Cách mạng tư sản kiểu cũ","Cải lương, cải cách","Đấu tranh nghị trường"]},
-  {q:"Trong Chánh cương vắn tắt, Đảng chủ trương tiến hành cuộc cách mạng nào?", a:"Cách mạng tư sản dân quyền tiến tới xã hội cộng sản, bỏ qua giai đoạn tư bản chủ nghĩa", w:["Cách mạng xã hội chủ nghĩa ngay lập tức","Cải cách ruộng đất trước, giành độc lập sau","Cải cách văn hóa, xã hội không dùng bạo lực"]},
-  {q:"Theo Chánh cương vắn tắt, lực lượng lãnh đạo cách mạng là ai?", a:"Giai cấp vô sản, thông qua Đảng Cộng sản", w:["Giai cấp tư sản dân tộc","Giai cấp địa chủ phong kiến","Tầng lớp tiểu tư sản trí thức"]},
-  {q:"Chánh cương vắn tắt chủ trương chia ruộng đất tịch thu của đế quốc cho ai?", a:"Dân cày nghèo", w:["Địa chủ lớn","Tư sản dân tộc","Công nhân đô thị"]},
-  {q:"Chánh cương vắn tắt đề ra mục tiêu chính trị nào?", a:"Dựng ra chính phủ công nông binh, tổ chức quân đội công nông", w:["Thiết lập chế độ quân chủ lập hiến","Thành lập chính phủ liên hiệp với thực dân Pháp","Thiết lập chế độ cộng hòa tư sản"]},
-  {q:"Đảng ra đời là kết quả tất yếu của cuộc đấu tranh nào?", a:"Đấu tranh dân tộc và đấu tranh giai cấp", w:["Đấu tranh tôn giáo","Đấu tranh kinh tế thuần túy","Đấu tranh nghị trường ở đô thị"]},
-  {q:"Sự ra đời của Đảng là sản phẩm của sự kết hợp nào?", a:"Chủ nghĩa Mác-Lênin với phong trào công nhân và phong trào yêu nước", w:["Chủ nghĩa tư bản với phong trào tư sản","Chủ nghĩa Tam dân với phong trào nông dân","Chủ nghĩa xã hội không tưởng với phong trào tiểu tư sản"]},
-  {q:"Sự kiện nào làm biến đổi sâu sắc tình hình thế giới đầu thế kỷ XX?", a:"Cách mạng Tháng Mười Nga thành công", w:["Chiến tranh Pháp-Phổ","Cách mạng công nghiệp ở Anh","Chiến tranh Nha phiến"]},
-  {q:"Quốc tế Cộng sản ra đời vào năm nào?", a:"1919", w:["1917","1920","1930"]},
-  {q:"Quân Pháp tấn công Đà Nẵng mở đầu quá trình xâm lược Việt Nam vào năm nào?", a:"1858", w:["1862","1884","1897"]},
-  {q:"Cuộc khai thác thuộc địa lần thứ nhất của Pháp diễn ra trong giai đoạn nào?", a:"1897-1914", w:["1919-1929","1884-1897","1930-1939"]},
-  {q:"Cuộc khai thác thuộc địa lần thứ hai của Pháp diễn ra trong giai đoạn nào?", a:"1919-1929", w:["1897-1914","1884-1897","1930-1939"]},
-  {q:"Pháp thực hiện chính sách cai trị chủ yếu nào đối với Việt Nam?", a:"Chia để trị", w:["Tự trị địa phương","Liên bang Đông Dương tự quản","Hòa giải dân tộc"]},
-  {q:"Hai mâu thuẫn cơ bản trong xã hội Việt Nam thời thuộc Pháp là gì?", a:"Dân tộc với đế quốc xâm lược, và nông dân với địa chủ phong kiến", w:["Công nhân với tư sản, và địa chủ với tư sản","Dân tộc với phong kiến, và tư sản với công nhân","Nông dân với tư sản, và địa chủ với đế quốc"]},
-  {q:"Nhiệm vụ của cách mạng Việt Nam trong giai đoạn này gồm những gì?", a:"Đánh đổ thực dân giành độc lập dân tộc và xóa bỏ chế độ phong kiến", w:["Xây dựng chủ nghĩa xã hội và công nghiệp hóa","Thiết lập chế độ cộng hòa tư sản","Đấu tranh đòi tự trị trong khuôn khổ Liên bang Đông Dương"]},
-  {q:"Giai cấp nào được xác định là lực lượng lãnh đạo cách mạng Việt Nam?", a:"Giai cấp công nhân", w:["Giai cấp nông dân","Giai cấp tư sản dân tộc","Tầng lớp tiểu tư sản"]},
-  {q:"Phong trào Cần Vương do ai lãnh đạo?", a:"Vua Hàm Nghi (cùng Tôn Thất Thuyết)", w:["Đề Thám","Phan Bội Châu","Phan Châu Trinh"]},
-  {q:"Phong trào Yên Thế (Hoàng Hoa Thám) thuộc khuynh hướng yêu nước nào?", a:"Nông dân", w:["Phong kiến","Tư sản","Vô sản"]},
-  {q:"Phan Bội Châu chủ trương đấu tranh chống Pháp bằng phương pháp nào?", a:"Bạo động vũ trang", w:["Cải cách văn hóa, xã hội","Cầu viện nước ngoài bằng ngoại giao","Đấu tranh nghị trường"]},
-  {q:"Phan Châu Trinh chủ trương gì?", a:"Vận động cải cách văn hóa, xã hội, phản đối đấu tranh vũ trang", w:["Lãnh đạo khởi nghĩa vũ trang chống Pháp","Thành lập Việt Nam Quang Phục Hội","Thành lập Đảng Cộng sản Đông Dương"]},
-  {q:"Nguyễn Thái Học lãnh đạo khởi nghĩa Yên Bái (02/1930) thuộc tổ chức nào?", a:"Việt Nam Quốc dân Đảng", w:["Đông Dương Cộng sản Đảng","Tân Việt Cách mạng Đảng","Việt Nam Quang Phục Hội"]},
-  {q:"Nguyên nhân chủ yếu khiến các phong trào yêu nước trước 1930 đều thất bại là gì?", a:"Chưa có đường lối cách mạng đúng đắn", w:["Thực dân Pháp quá mạnh về mọi mặt","Nhân dân không tham gia đông đảo","Không có sự ủng hộ của thế giới"]},
-  {q:"Luận cương chính trị tháng 10/1930 đổi tên Đảng thành gì?", a:"Đảng Cộng sản Đông Dương", w:["Đảng Cộng sản Việt Nam","Đảng Lao động Việt Nam","Đảng Dân chủ Đông Dương"]},
-  {q:"Văn kiện nào nhấn mạnh vấn đề thổ địa là cái cốt của cách mạng tư sản dân quyền?", a:"Luận cương chính trị tháng 10/1930", w:["Chánh cương vắn tắt, sách lược vắn tắt","Chỉ thị thành lập Hội phản đế đồng minh (18/11/1930)","Xung quanh vấn đề chiến sách mới của Đảng (12/1930)"]},
-  {q:"Theo Luận cương chính trị tháng 10/1930, lực lượng cách mạng là ai?", a:"Công nhân và nông dân", w:["Công nhân và tư sản","Nông dân và địa chủ","Tiểu tư sản và trí thức"]},
-  {q:"Hạn chế lớn của Luận cương chính trị tháng 10/1930 là gì?", a:"Chưa coi trọng vấn đề giải phóng dân tộc", w:["Chưa coi trọng cách mạng ruộng đất","Chưa xác định vai trò giai cấp công nhân","Quá coi trọng đấu tranh nghị trường"]},
-  {q:"Cao trào Xô viết Nghệ Tĩnh diễn ra chủ yếu ở đâu?", a:"Nghệ An - Hà Tĩnh", w:["Thanh Hóa - Quảng Bình","Nam Kỳ","Hà Nội - Hải Phòng"]},
-  {q:"Chính quyền Xô viết Nghệ Tĩnh được thành lập vào tháng nào năm 1930?", a:"Tháng 9/1930", w:["Tháng 1/1930","Tháng 4/1930","Tháng 5/1930"]},
-  {q:"Cao trào cách mạng 1930-1931 có khoảng bao nhiêu cuộc đấu tranh nổ ra trên cả nước?", a:"Gần 200 cuộc", w:["Khoảng 20 cuộc","Khoảng 50 cuộc","Khoảng 1000 cuộc"]},
-  {q:"Một trong những nguyên nhân dẫn đến cao trào cách mạng 1930-1931 là gì?", a:"Khủng hoảng kinh tế thế giới 1929-1933", w:["Chiến tranh thế giới thứ nhất bùng nổ","Pháp giảm thuế cho nông dân","Cách mạng Tháng Mười Nga 1917"]},
-  {q:"Đại hội I của Đảng năm 1935 diễn ra ở đâu?", a:"Ma Cao (Trung Quốc)", w:["Hương Cảng (Trung Quốc)","Quảng Châu (Trung Quốc)","Mát-xcơ-va (Liên Xô)"]},
-  {q:"Tại Đại hội I (3/1935), ai được đề cử làm Tổng Bí thư?", a:"Lê Hồng Phong", w:["Trần Phú","Hà Huy Tập","Nguyễn Văn Cừ"]},
-  {q:"Khẩu hiệu chính của phong trào dân chủ 1936-1939 là gì?", a:"Tự do, dân chủ, cơm áo, hòa bình", w:["Độc lập, tự do, chia ruộng đất cho dân cày","Đánh đổ đế quốc, phong kiến","Ruộng đất về tay nông dân"]},
-  {q:"Hội nghị Trung ương tháng 3/1938 do Tổng Bí thư Nguyễn Văn Cừ chủ trì quyết định thành lập tổ chức nào?", a:"Mặt trận Dân chủ Đông Dương", w:["Việt Minh","Mặt trận Liên Việt","Mặt trận Dân tộc thống nhất phản đế Đông Dương"]},
-  {q:"Phong trào dân chủ 1936-1939 được coi là gì?", a:"Tổng diễn tập lần thứ hai cho Cách mạng Tháng Tám", w:["Cuộc khởi nghĩa vũ trang đầu tiên","Thời kỳ đấu tranh nghị trường thuần túy","Cuộc cách mạng vô sản thắng lợi đầu tiên"]},
-  {q:"Phong trào dân chủ 1936-1939 tổ chức đấu tranh theo hình thức nào?", a:"Kết hợp công khai, nửa công khai và bí mật", w:["Chỉ công khai, hợp pháp","Chỉ bí mật, bất hợp pháp","Chỉ nửa công khai, nửa hợp pháp"]},
-  {q:"Theo Nguyễn Ái Quốc, khi nào Đảng mới giành được địa vị lãnh đạo?", a:"Khi quần chúng rộng rãi thừa nhận chính sách đúng đắn và năng lực lãnh đạo của Đảng", w:["Khi có đủ vũ khí trong tay","Khi được quốc tế công nhận","Khi có số lượng đảng viên đông nhất"]},
-  {q:"Kinh nghiệm đầu tiên được rút ra từ phong trào cách mạng 1936-1939 là gì?", a:"Xác định đúng nhiệm vụ", w:["Đoàn kết các lực lượng","Nhiều hình thức đấu tranh","Dựa vào vũ trang bạo lực"]},
-  {q:"Chiến tranh thế giới thứ hai bùng nổ khi nào?", a:"Ngày 1/9/1939", w:["Ngày 1/9/1938","Ngày 1/9/1940","Ngày 1/9/1941"]},
-  {q:"Hội nghị Trung ương 6 (11/1939) quyết định tổ chức Đảng theo hình thức nào?", a:"Bí mật, bất hợp pháp", w:["Công khai, hợp pháp","Nửa công khai, nửa hợp pháp","Hợp pháp, bán công khai"]},
-  {q:"Mục tiêu trước mắt của Hội nghị Trung ương 6 (11/1939) là gì?", a:"Đánh đổ đế quốc Pháp, giành độc lập dân tộc", w:["Xây dựng chủ nghĩa xã hội","Chia ruộng đất cho nông dân","Thành lập nước Việt Nam Dân chủ Cộng hòa"]},
-  {q:"Hội nghị Trung ương 7 (11/1940) xác định kẻ thù chính của cách mạng là ai?", a:"Pháp - Nhật", w:["Thực dân Pháp","Phát xít Nhật","Đế quốc Mỹ và Anh"]},
-  {q:"Hội nghị Trung ương 7 (11/1940) quyết định đình chỉ việc gì?", a:"Khởi nghĩa Nam Kỳ", w:["Khởi nghĩa Bắc Sơn","Khởi nghĩa Yên Bái","Tổng khởi nghĩa tháng Tám"]},
-  {q:"Nguyễn Ái Quốc về nước ngày nào?", a:"28/1/1941", w:["6/1/1930","19/8/1945","2/9/1945"]},
-  {q:"Hội nghị Trung ương 8 (5/1941) xác định nhiệm vụ trọng tâm là gì?", a:"Chuẩn bị khởi nghĩa vũ trang", w:["Đấu tranh nghị trường","Xây dựng chính quyền Xô viết","Tổ chức bãi công trên cả nước"]},
-  {q:"Hội nghị Trung ương 8 tạm gác khẩu hiệu nào để tập trung cho độc lập dân tộc?", a:"Chia ruộng đất cho dân cày", w:["Đánh đổ thực dân Pháp","Đánh đuổi phát xít Nhật","Lập chính phủ công nông"]},
-  {q:"Mặt trận được Hội nghị Trung ương 8 tập hợp rộng rãi mọi lực lượng dân tộc là gì?", a:"Mặt trận Việt Minh", w:["Mặt trận Dân chủ Đông Dương","Mặt trận Liên Việt","Mặt trận Dân tộc thống nhất phản đế Đông Dương"]},
-  {q:"Hội nghị Trung ương 8 chủ trương thành lập nhà nước nào?", a:"Việt Nam Dân chủ Cộng hòa", w:["Việt Nam Dân chủ Nhân dân","Cộng hòa xã hội chủ nghĩa Việt Nam","Liên bang Đông Dương"]},
-  {q:"Đội Việt Nam tuyên truyền giải phóng quân được thành lập vào ngày nào?", a:"22/12/1944", w:["19/8/1945","22/12/1946","2/9/1945"]},
-  {q:"Việt Nam giải phóng quân được hình thành từ hai lực lượng nào vào tháng 5/1945?", a:"Việt Nam tuyên truyền giải phóng quân và Cứu quốc quân", w:["Đội du kích Bắc Sơn và Cứu quốc quân","Quân đội Quốc gia và Đội thiếu niên","Hồng quân Liên Xô và Cứu quốc quân"]},
-  {q:"Chỉ thị nào của Ban Thường vụ Trung ương Đảng ngày 12/3/1945 có nội dung Nhật - Pháp bắn nhau và hành động của chúng ta?", a:"Chỉ thị ngày 12/3/1945", w:["Chỉ thị Kháng chiến toàn quốc (12/12/1946)","Đề cương văn hóa Việt Nam (1943)","Tuyên ngôn độc lập (2/9/1945)"]},
-  {q:"Theo chỉ thị ngày 12/3/1945, kẻ thù chính, duy nhất của cách mạng là ai?", a:"Phát xít Nhật", w:["Thực dân Pháp","Phát xít Đức","Đế quốc Mỹ"]},
-  {q:"Hội nghị nào quyết định phát động toàn dân nổi dậy Tổng khởi nghĩa giành chính quyền?", a:"Hội nghị toàn quốc của Đảng (13-15/8/1945)", w:["Hội nghị Ban Chấp hành Trung ương Đảng","Hội nghị Ban Thường vụ Trung ương Đảng","Hội nghị Tổng bộ Việt Minh"]},
-  {q:"Hội nghị toàn quốc của Đảng (13-15/8/1945) diễn ra ở đâu?", a:"Đình Tân Trào, Sơn Dương (Tuyên Quang)", w:["Đình Bảng, Bắc Ninh","Pác Bó, Cao Bằng","Hương Cảng, Trung Quốc"]},
-  {q:"Tại Đại hội quốc dân Tân Trào (16/8/1945), ai được bầu làm Chủ tịch Ủy ban Giải phóng dân tộc?", a:"Hồ Chí Minh", w:["Trường Chinh","Võ Nguyên Giáp","Phạm Văn Đồng"]},
-  {q:"Bảo Đại thoái vị vào ngày nào?", a:"30/8/1945", w:["19/8/1945","25/8/1945","2/9/1945"]},
-  {q:"Nhân dân Huế khởi nghĩa vào ngày nào?", a:"23/8/1945", w:["19/8/1945","25/8/1945","30/8/1945"]},
-  {q:"Nhân dân Sài Gòn khởi nghĩa vào ngày nào?", a:"25/8/1945", w:["19/8/1945","23/8/1945","30/8/1945"]},
-  {q:"Chủ tịch Hồ Chí Minh đọc Tuyên ngôn độc lập và nước Việt Nam Dân chủ Cộng hòa ra đời vào ngày nào?", a:"2/9/1945", w:["19/8/1945","16/8/1945","30/8/1945"]},
-  {q:"Cách mạng Tháng Tám năm 1945 được xác định là cuộc cách mạng nào?", a:"Cách mạng giải phóng dân tộc điển hình", w:["Cách mạng xã hội chủ nghĩa","Cách mạng dân chủ tư sản kiểu cũ","Cải cách ruộng đất"]},
-  {q:"Ý nghĩa quốc tế nổi bật của Cách mạng Tháng Tám là gì?", a:"Lần đầu tiên cách mạng giải phóng dân tộc theo con đường vô sản thắng lợi ở một nước thuộc địa", w:["Chấm dứt hoàn toàn chiến tranh thế giới","Thiết lập trật tự thế giới mới do Mỹ đứng đầu","Đưa Liên Xô trở thành cường quốc duy nhất"]},
-  {q:"Bài học hàng đầu của Cách mạng Tháng Tám về chỉ đạo chiến lược là gì?", a:"Giương cao ngọn cờ độc lập dân tộc, kết hợp đúng đắn hai nhiệm vụ chống đế quốc và chống phong kiến", w:["Toàn dân nổi dậy trên nền tảng khối liên minh công nông","Lợi dụng mâu thuẫn trong hàng ngũ kẻ thù","Nắm vững nghệ thuật khởi nghĩa và chọn đúng thời cơ"]},
-  {q:"Bài học về phương pháp cách mạng trong Cách mạng Tháng Tám là gì?", a:"Kết hợp đấu tranh chính trị với đấu tranh vũ trang", w:["Chỉ dùng đấu tranh nghị trường","Chỉ dùng đấu tranh vũ trang","Chỉ dùng ngoại giao để giành chính quyền"]},
-  {q:"Suốt 15 năm đấu tranh cách mạng 1930-1945, Đảng đã lãnh đạo hoàn thành mục tiêu nào?", a:"Giành độc lập, thiết lập nhà nước dân chủ nhân dân", w:["Hoàn thành công nghiệp hóa đất nước","Thống nhất đất nước","Xây dựng chủ nghĩa xã hội ở miền Bắc"]}
+const CH0 = [
+  {q:"Học phần Hành vi người tiêu dùng có tổng số tiết tín chỉ là bao nhiêu?", a:"60 tiết", w:["45 tiết", "30 tiết", "90 tiết"], sec:"0"},
+  {q:"Cấu trúc đánh giá học phần Hành vi người tiêu dùng: điểm chuyên cần chiếm tỷ trọng bao nhiêu phần trăm?", a:"10%", w:["30%", "60%", "15%"], sec:"0"},
+  {q:"Trong điểm chuyên cần của học phần Hành vi người tiêu dùng, hai thành phần 5% + 5% là gì?", a:"Điểm danh và tham gia xây dựng bài trên lớp", w:["Điểm danh và bài tập về nhà định kỳ", "Bài tập nhóm và bài kiểm tra 15 phút", "Tham gia thảo luận và báo cáo nhóm"], sec:"0"},
+  {q:"Điểm kiểm tra giữa kỳ (30%) của học phần gồm hai thành phần nào, mỗi thành phần 15%?", a:"Thi trắc nghiệm & tự luận và báo cáo thuyết trình", w:["Bài tập lớn và bài kiểm tra cuối chương", "Thuyết trình nhóm và điểm danh đầu giờ", "Thi viết trên giấy và vấn đáp nhanh"], sec:"0"},
+  {q:"Thi kết thúc học phần Hành vi người tiêu dùng chiếm 60% điểm và được tổ chức theo hình thức nào?", a:"Tự luận & trắc nghiệm trên giấy", w:["Chỉ trắc nghiệm trên máy tính", "Chỉ tự luận trên giấy", "Chỉ vấn đáp trực tiếp với giảng viên bộ môn"], sec:"0"},
+  {q:"Sinh viên được dự thi kết thúc học phần nếu tham dự ít nhất bao nhiêu phần trăm số tiết lên lớp thực tế?", a:"80%", w:["50%", "60%", "100%"], sec:"0"},
+  {q:"Ngoài tỷ lệ chuyên cần, điều kiện dự thi kết thúc học phần Hành vi người tiêu dùng còn yêu cầu gì?", a:"Làm đầy đủ các bài tập, bài kiểm tra, thảo luận theo quy định", w:["Nộp đủ ít nhất một bài tiểu luận cá nhân đã được giảng viên chấm đạt", "Hoàn thành khóa học trực tuyến do trường tổ chức", "Nộp bài thu hoạch nhóm trước tuần cuối cùng"], sec:"0"},
+  {q:"Tài liệu nào được dùng làm giáo trình chính của học phần Hành vi người tiêu dùng?", a:"Vũ Huy Thông (2025), Hành vi Người tiêu dùng, NXB Đại học Kinh tế Quốc dân", w:["Nguyễn Thị Gấm (2010), Hành vi Người tiêu dùng, NXB Đại học Thái Nguyên, tài liệu tham khảo", "Mai Nguyệt Anh (2018), Tập 10: New Generation Y and Z", "Giáo trình Marketing căn bản của Đại học Kinh tế Quốc dân"], sec:"0"},
+  {q:"Phần 2 của học phần “Các yếu tố bên ngoài ảnh hưởng đến hành vi người tiêu dùng” gồm những chương nào?", a:"Từ Chương 2 đến Chương 6", w:["Từ Chương 7 đến Chương 11", "Chỉ có Chương 1", "Từ Chương 6 đến Chương 11"], sec:"0"},
+  {q:"Phần 3 của học phần bàn về các yếu tố bên trong ảnh hưởng đến hành vi người tiêu dùng, gồm những nội dung nào?", a:"Nhu cầu, động cơ, kiến thức, nhận thức, thái độ, quyết định mua và hành trình trải nghiệm của NTD", w:["Văn hóa, giai tầng xã hội, nhóm tham khảo, gia đình và lối sống của NTD", "Marketing căn bản, quản trị bán hàng và truyền thông marketing tích hợp", "Điểm chuyên cần của sinh viên, kiểm tra giữa kỳ và bài thi kết thúc học phần cuối kỳ của trường"], sec:"0"}
 ];
 
-const NHAPMON = [
-  {q:"Đảng Cộng sản Việt Nam lấy chủ nghĩa nào làm nền tảng tư tưởng?", a:"Chủ nghĩa Mác-Lênin và tư tưởng Hồ Chí Minh", w:["Chủ nghĩa Tam dân của Tôn Trung Sơn","Chủ nghĩa tự do cổ điển","Chủ nghĩa xã hội không tưởng"]},
-  {q:"Nguyên tắc tổ chức cơ bản của Đảng là gì?", a:"Tập trung dân chủ", w:["Tập thể lãnh đạo, cá nhân phụ trách","Đa số phục tùng thiểu số","Tự do tư tưởng tuyệt đối"]},
-  {q:"Ai là người sáng lập ra Đảng Cộng sản Việt Nam?", a:"Hồ Chí Minh", w:["Trần Phú","Lê Hồng Phong","Nguyễn Văn Cừ"]},
-  {q:"Đảng Cộng sản Việt Nam là đội tiên phong của những đối tượng nào?", a:"Giai cấp công nhân, nhân dân lao động và dân tộc Việt Nam", w:["Chỉ giai cấp tư sản","Chỉ giai cấp nông dân","Chỉ tầng lớp trí thức đô thị"]},
-  {q:"Quy luật hình thành của Đảng Cộng sản Việt Nam là gì?", a:"Kết hợp chủ nghĩa Mác-Lênin với phong trào công nhân và phong trào yêu nước", w:["Kết hợp chủ nghĩa tư bản với phong trào tư sản","Kết hợp chủ nghĩa Tam dân với phong trào nông dân","Kết hợp chủ nghĩa xã hội không tưởng với phong trào tiểu tư sản"]},
-  {q:"Đối tượng nghiên cứu của môn Lịch sử Đảng Cộng sản Việt Nam là gì?", a:"Cương lĩnh, đường lối, chủ trương, chính sách của Đảng", w:["Lịch sử các triều đại phong kiến Việt Nam","Lịch sử thế giới cận đại","Lịch sử các đảng phái ngoài Việt Nam"]},
-  {q:"Theo giáo trình, điều kiện trước hết quyết định thành công của cách mạng là gì?", a:"Cương lĩnh, đường lối đúng đắn", w:["Số lượng đảng viên đông đảo","Sự ủng hộ của các nước lớn","Nguồn ngân sách dồi dào"]},
-  {q:"Cương lĩnh chính trị đầu tiên của Đảng được ban hành vào thời gian nào?", a:"Tháng 2/1930", w:["Tháng 10/1930","Tháng 6/1991","Tháng 2/1951"]},
-  {q:"Luận cương chính trị của Đảng ra đời vào thời gian nào?", a:"Tháng 10/1930", w:["Tháng 2/1930","Tháng 2/1951","Tháng 6/1991"]},
-  {q:"Chính cương của Đảng Lao động Việt Nam ra đời vào thời gian nào?", a:"Tháng 2/1951", w:["Tháng 2/1930","Tháng 10/1930","Tháng 6/1991"]},
-  {q:"Cương lĩnh xây dựng đất nước trong thời kỳ quá độ lên chủ nghĩa xã hội được thông qua năm nào?", a:"1991", w:["1976","1986","1996"]},
-  {q:"Cương lĩnh xây dựng đất nước trong thời kỳ quá độ lên chủ nghĩa xã hội được bổ sung, phát triển năm nào?", a:"2011", w:["2001","2006","2016"]},
-  {q:"Chức năng khoa học của Lịch sử Đảng gồm những gì?", a:"Nhận thức, giáo dục, dự báo và phê phán", w:["Tuyên truyền, giáo huấn, phổ cập","Chọn lọc, điều tiết, tìm kiếm","Giáo dục, sàng lọc, tuyên truyền và tìm kiếm"]},
-  {q:"Một trong những nhiệm vụ hàng đầu khi nghiên cứu Lịch sử Đảng là gì?", a:"Trình bày có hệ thống Cương lĩnh, đường lối của Đảng", w:["Làm cho người học trung thành tuyệt đối với Đảng","Tìm hiểu sự ra đời của Đảng Cộng sản trên thế giới","Chọn lọc các sự kiện nổi bật để tái hiện sự thành công"]},
-  {q:"Phương pháp luận sử học của môn Lịch sử Đảng dựa trên gì?", a:"Chủ nghĩa Mác-Lênin và tư tưởng Hồ Chí Minh", w:["Chủ nghĩa thực dân","Thuyết tiến hóa xã hội của Spencer","Chủ nghĩa thực chứng"]},
-  {q:"Phương pháp lịch sử nhằm mục đích gì?", a:"Diễn lại tiến trình phát triển của lịch sử", w:["Tìm ra bản chất và quy luật chung","Dự báo tương lai","Phân tích thống kê định lượng"]},
-  {q:"Phương pháp logic nhằm mục đích gì?", a:"Tìm ra bản chất, quy luật, khuynh hướng chung", w:["Diễn lại tiến trình chi tiết của sự kiện","Ghi chép lời kể của nhân chứng","Đánh giá vai trò cá nhân"]},
-  {q:"Mục tiêu nghiên cứu Lịch sử Đảng nhằm điều gì?", a:"Nâng cao trình độ lý luận, năng lực lãnh đạo, khắc phục khuynh hướng giáo điều, bảo thủ", w:["Tạo ra sự sùng bái cá nhân","Thay thế các môn lý luận khác","Chỉ để phục vụ thi đua"]},
-  {q:"Hai bộ tài liệu chính được giới thiệu để nghiên cứu là gì?", a:"Văn kiện Đảng toàn tập và Hồ Chí Minh toàn tập", w:["Bách khoa toàn thư và Từ điển Hán Việt","Tuyển tập Marx-Engels và Lê-nin toàn tập","Niên giám thống kê và báo Nhân Dân"]},
-  {q:"Vận dụng chủ nghĩa duy vật lịch sử khi học Lịch sử Đảng nhằm nhận thức điều gì?", a:"Tiến trình cách mạng do Đảng Cộng sản Việt Nam lãnh đạo", w:["Sự ưu việt của Đảng so với các đảng phương Tây","Sứ mệnh lịch sử của giai cấp nông dân","Lý do cách mạng đi theo con đường tư sản"]},
-  {q:"Đảng lãnh đạo thông qua quá trình nào để làm rõ thắng lợi, kinh nghiệm, bài học của cách mạng?", a:"Chỉ đạo, tổ chức thực tiễn trong tiến trình cách mạng", w:["Chỉ qua các văn bản pháp luật","Chỉ qua báo cáo của địa phương","Chỉ qua số liệu thống kê"]},
-  {q:"Nghiên cứu Lịch sử Đảng làm rõ nội dung nào về công tác xây dựng Đảng?", a:"Hệ thống tổ chức Đảng và công tác xây dựng Đảng về chính trị, tư tưởng, tổ chức, đạo đức", w:["Chỉ thành phần đảng viên","Chỉ số liệu tài chính","Chỉ quan hệ đối ngoại"]},
-  {q:"Đại hội III của Đảng (xây dựng chủ nghĩa xã hội ở miền Bắc) được tổ chức vào thời gian nào?", a:"Tháng 9/1960", w:["Tháng 2/1930","Tháng 12/1976","Tháng 12/1986"]},
-  {q:"Câu nói Đảng ta thật là vĩ đại là của ai?", a:"Hồ Chí Minh", w:["Lê Duẩn","Trường Chinh","Nguyễn Văn Linh"]},
-  {q:"Mục đích giáo dục của việc học Lịch sử Đảng là gì?", a:"Củng cố, bồi đắp niềm tin đối với sự lãnh đạo của Đảng", w:["Khiến sinh viên xa rời thực tế","Thay thế học tập lịch sử dân tộc","Chỉ để đạt điểm cao trong kỳ thi"]},
-  {q:"Cương lĩnh chính trị đầu tiên của Đảng có tên gọi là gì?", a:"Chánh cương vắn tắt", w:["Đại cương lịch sử","Tuyên ngôn độc lập","Hiến pháp năm 1946"]},
-  {q:"Theo chương nhập môn, văn kiện nào được ban hành đầu tiên?", a:"Cương lĩnh chính trị đầu tiên (2/1930)", w:["Chính cương của Đảng Lao động Việt Nam (2/1951)","Cương lĩnh xây dựng đất nước (6/1991)","Cương lĩnh bổ sung, phát triển (2011)"]},
-  {q:"Mục tiêu kỹ năng của chương nhập môn là gì?", a:"Vận dụng kiến thức để học tập các chương sau của môn học", w:["Thuộc lòng toàn bộ nghị quyết","Soạn văn kiện thay Đảng","Viết tiểu luận không cần tài liệu"]},
-  {q:"Mục tiêu tư tưởng của chương nhập môn là gì?", a:"Có thái độ tích cực với việc học tập các môn Lý luận chính trị", w:["Từ bỏ các môn học khác","Chỉ học những nội dung có trong đề thi","Tránh tranh luận về lịch sử"]},
-  {q:"Đảng Cộng sản Việt Nam coi trọng công tác nào để nâng cao trình độ lý luận?", a:"Nghiên cứu, tổng kết những bài học lịch sử", w:["Tránh nhắc lại quá khứ","Chỉ học các văn bản nước ngoài","Chỉ ưu tiên thi đua khen thưởng"]},
-  {q:"Chủ nghĩa duy vật biện chứng và chủ nghĩa duy vật lịch sử thuộc về đâu trong phương pháp luận?", a:"Quan điểm chủ nghĩa Mác-Lênin", w:["Tư tưởng phong kiến","Chủ nghĩa thực dân mới","Thuyết trung lập chính trị"]},
-  {q:"Đảng Cộng sản Việt Nam lấy nguyên tắc nào làm cơ sở tổ chức?", a:"Tập trung dân chủ", w:["Tập trung quan liêu","Phân quyền tuyệt đối","Đa đảng cạnh tranh"]}
+const CH1 = [
+  {q:"Theo mục 1.1.1, mua sắm là một quá trình ra quyết định, trong đó người tiêu dùng làm gì?", a:"Tìm kiếm thông tin, đánh giá các lựa chọn và quyết định mua hoặc không mua", w:["Sử dụng sản phẩm/dịch vụ để thỏa mãn nhu cầu, gồm dùng ở đâu, khi nào và như thế nào", "Vứt bỏ, tái chế, tái sử dụng hoặc đổi sản phẩm cũ lấy sản phẩm mới", "Chia sẻ đánh giá và trải nghiệm về sản phẩm/dịch vụ cho cộng đồng mạng"], sec:"1.1"},
+  {q:"Theo mục 1.1.1, hoạt động sử dụng sản phẩm/dịch vụ để thỏa mãn nhu cầu, bao gồm sản phẩm được tiêu dùng ở đâu, khi nào và sử dụng như thế nào, được gọi là gì?", a:"Tiêu dùng", w:["Mua sắm", "Loại bỏ", "Tìm kiếm"], sec:"1.1"},
+  {q:"Một người đã hết nhu cầu sử dụng liền đem các chai nhựa trong nhà đi tái chế thay vì vứt vào thùng rác. Theo mục 1.1.1, cách xử lý sản phẩm này thuộc khái niệm nào?", a:"Loại bỏ", w:["Mua sắm", "Tiêu dùng", "Tìm kiếm"], sec:"1.1"},
+  {q:"Đâu KHÔNG phải là một thay đổi của người tiêu dùng khi chuyển từ marketing truyền thống tới marketing hiện đại?", a:"Chuyển từ mua trực tuyến sang chỉ mua tại cửa hàng truyền thống", w:["Từ thụ động chuyển sang chủ động tìm kiếm, đánh giá và chia sẻ thông tin", "Quyết định mua chịu ảnh hưởng ngày càng lớn từ cộng đồng mạng, KOLs và người tiêu dùng khác", "Kết hợp trải nghiệm trực tuyến và trực tiếp, kỳ vọng mua sắm liền mạch, nhất quán và cá nhân hóa"], sec:"1.1"},
+  {q:"Trong sự chuyển dịch của marketing từ “bán sản phẩm” tới “hiểu khách hàng”, giai đoạn tiếp theo mà marketing hướng tới là gì?", a:"Tạo trải nghiệm khách hàng bằng công nghệ", w:["Tăng doanh số với chi phí quảng cáo thấp nhất", "Mở rộng kênh phân phối tới mọi vùng thị trường", "Giảm giá sản phẩm để thu hút khách hàng mới"], sec:"1.1"},
+  {q:"Theo sơ đồ ở mục 1.1.2.1, người tiêu dùng cá nhân là cá nhân, hộ gia đình hoặc nhóm người và là người tiêu dùng sản phẩm cuối cùng; họ mua sắm và tiêu dùng nhằm mục đích gì?", a:"Thỏa mãn nhu cầu và mong muốn cá nhân", w:["Sản xuất ra sản phẩm/dịch vụ khác để đem chào bán và kiếm lời", "Phục vụ các hoạt động mang tính chức năng của tổ chức", "Mua lại để cho thuê và hưởng lợi từ chênh lệch giá"], sec:"1.1"},
+  {q:"Một doanh nghiệp mua nguyên, nhiên, vật liệu làm đầu vào để sản xuất ra sản phẩm/dịch vụ khác rồi đem chào bán trên thị trường và kiếm lời. Theo mục 1.1.2.1, doanh nghiệp này là loại khách hàng nào?", a:"Khách hàng công nghiệp", w:["Khách hàng tổ chức", "Người tiêu dùng cá nhân", "Khách hàng tiềm năng"], sec:"1.1"},
+  {q:"Một công đoàn mua sắm và tiêu dùng sản phẩm/dịch vụ để phục vụ cho các hoạt động mang tính chức năng của tổ chức mình. Theo mục 1.1.2.1, người mua này là khách hàng nào?", a:"Khách hàng tổ chức", w:["Khách hàng công nghiệp", "Người tiêu dùng cá nhân", "Khách hàng tiềm năng"], sec:"1.1"},
+  {q:"Trong các khái niệm người tiêu dùng gắn với vai trò quyết định mua, người đầu tiên đưa ra ý tưởng mua một sản phẩm/dịch vụ cụ thể được gọi là gì?", a:"Người khởi xướng", w:["Người quyết định", "Người sử dụng", "Người ảnh hưởng có tính chất áp đặt"], sec:"1.1"},
+  {q:"Trong một gia đình, người vợ quyết định sẽ mua chiếc tivi nào và mua ở đâu, người chồng đến siêu thị thanh toán và nhận hàng, còn các con là người xem tivi mỗi ngày. Người chồng giữ vai trò nào?", a:"Người mua", w:["Người quyết định", "Người sử dụng", "Người khởi xướng"], sec:"1.1"},
+  {q:"Một chuyên gia tư vấn tiêu dùng đưa ra những chỉ dẫn mang tính hướng dẫn, khuyên bảo, giới thiệu sản phẩm và ảnh hưởng ở mức độ nhất định đến quyết định mua của khách hàng. Người này thuộc loại người ảnh hưởng nào?", a:"Người ảnh hưởng có tính chất cố vấn", w:["Người ảnh hưởng có tính chất áp đặt", "Người khởi xướng", "Người quyết định"], sec:"1.1"},
+  {q:"Theo mục 1.1.2.1, người ảnh hưởng có tính chất áp đặt là người như thế nào?", a:"Người có ý kiến mang tính chất cưỡng chế các quyết định mua sắm hoặc tiêu dùng", w:["Người đưa ra những chỉ dẫn có tính hướng dẫn, khuyên bảo, giới thiệu sản phẩm", "Người đầu tiên đưa ra ý tưởng mua một sản phẩm/dịch vụ cụ thể", "Người thực hiện giao dịch mua sắm thực tế"], sec:"1.1"},
+  {q:"Theo phân loại của Szmigin và Piacentini (2015), người tiêu dùng nào ra quyết định lý trí, cân nhắc đắn đo dựa trên thông tin rõ ràng về các lựa chọn?", a:"Người lựa chọn", w:["Người khám phá", "Người truyền thông", "Người thiên hướng cảm xúc"], sec:"1.1"},
+  {q:"Một bạn trẻ mua ngay một món đồ chơi mới toanh dù chưa có nhu cầu rõ ràng, chỉ để trải nghiệm và khám phá điều mới lạ. Theo Szmigin và Piacentini (2015), bạn ấy thuộc nhóm người tiêu dùng nào?", a:"Người khám phá", w:["Người lựa chọn", "Người phản kháng", "Nạn nhân"], sec:"1.1"},
+  {q:"Theo Bảng 1.1 (Szmigin và Piacentini, 2015), người tiêu dùng nào dùng sản phẩm/dịch vụ để biểu đạt bản thân, địa vị xã hội hoặc “gu”, khác với nhóm mua sắm để thể hiện chất riêng và tạo dấu ấn cá nhân?", a:"Người truyền thông", w:["Người tìm kiếm “cái tôi”", "Người thiên hướng cảm xúc", "Người khám phá"], sec:"1.1"},
+  {q:"Sau một tuần làm việc căng thẳng, một người đi mua sắm chỉ để giải trí và làm dịu cảm xúc chứ chẳng cần dùng món đồ đó. Theo Bảng 1.1 (Szmigin và Piacentini, 2015), người này thuộc nhóm nào?", a:"Người thiên hướng cảm xúc", w:["Người lựa chọn", "Người khám phá", "Nhà hoạt động vì xã hội"], sec:"1.1"},
+  {q:"Người tiêu dùng ở một vùng hẻo lánh chỉ có đúng một cửa hàng, buộc phải chấp nhận mức giá bị đẩy lên rất cao. Theo Bảng 1.1 (Szmigin và Piacentini, 2015), họ thuộc nhóm nào?", a:"Nạn nhân", w:["Người phản kháng", "Người lựa chọn", "Người thiên hướng cảm xúc"], sec:"1.1"},
+  {q:"Anh A cố tình dùng một sản phẩm vào việc trái với mục đích của sản phẩm; chị B đi đầu trong các trào lưu tiêu dùng có đạo đức và ngăn chặn một vấn đề xã hội. Theo Bảng 1.1 (Szmigin và Piacentini, 2015), hai người này lần lượt thuộc nhóm nào?", a:"Người phản kháng và Nhà hoạt động vì xã hội", w:["Nhà hoạt động vì xã hội và Người phản kháng", "Người phản kháng và Người thiên hướng cảm xúc", "Nhà hoạt động vì xã hội và Người khám phá"], sec:"1.1"},
+  {q:"Theo mục 1.1.2.2, hành vi người tiêu dùng là cách thức khách hàng, cả cá nhân và tổ chức, thỏa mãn nhu cầu và mong muốn bằng cách nào?", a:"Mua sắm, tiêu dùng, loại bỏ hàng hóa, ý tưởng và dịch vụ", w:["Sản xuất, phân phối và xúc tiến sản phẩm/dịch vụ ra thị trường", "Nghiên cứu, thiết kế và phát triển sản phẩm/dịch vụ mới", "Quảng cáo, khuyến mãi và chăm sóc khách hàng sau bán"], sec:"1.1"},
+  {q:"Theo mục 1.1.2.2, nghiên cứu hành vi người tiêu dùng là nghiên cứu cách cá nhân sử dụng các nguồn lực hiện có nào cho các hoạt động liên quan tới tiêu dùng?", a:"Thời gian, tiền và nỗ lực", w:["Thời gian, thông tin và công nghệ", "Tiền bạc, kiến thức và mối quan hệ", "Nỗ lực, địa vị và sự uy tín"], sec:"1.1"},
+  {q:"Câu hỏi nào KHÔNG nằm trong 6 câu hỏi cốt lõi khi nghiên cứu hành vi người tiêu dùng?", a:"Sản phẩm được sản xuất như thế nào?", w:["Họ mua ở đâu?", "Tại sao họ mua sản phẩm?", "Khi nào họ mua?"], sec:"1.1"},
+  {q:"Theo mục 1.2.1, đối tượng nghiên cứu hành vi người tiêu dùng là gì?", a:"Toàn bộ hành vi của con người tham gia vào hoạt động trao đổi nhằm thỏa mãn nhu cầu của con người", w:["Chỉ những hành vi mua sắm diễn ra tại điểm bán lẻ và trên nền tảng số", "Thái độ, ý định và đánh giá của người tiêu dùng với sản phẩm mới", "Quá trình ra quyết định mua của khách hàng công nghiệp và khách hàng tổ chức"], sec:"1.2.1"},
+  {q:"Theo đặc điểm “Gắn với hoạt động trao đổi” của đối tượng nghiên cứu hành vi người tiêu dùng, hành vi được tập trung xem xét trong quá trình nào?", a:"Tìm kiếm → Mua sắm → Sử dụng → (Có thể) Loại bỏ", w:["Mua sắm → Tìm kiếm → Sử dụng → (Có thể) Loại bỏ", "Tìm kiếm → Sử dụng → Mua sắm → (Có thể) Loại bỏ", "Sử dụng → Tìm kiếm → Mua sắm → (Có thể) Loại bỏ"], sec:"1.2.1"},
+  {q:"Hành vi người tiêu dùng luôn biến đổi theo cá nhân, nhóm, xã hội và thời gian. Từ đặc điểm này của đối tượng nghiên cứu, có thể rút ra kết luận gì về lý thuyết và chiến lược marketing?", a:"Không có một lý thuyết hay chiến lược marketing nào phù hợp cho mọi sản phẩm, thị trường và thời điểm", w:["Chỉ cần một lý thuyết hành vi là đủ để giải thích cho mọi sản phẩm và thị trường", "Mỗi lý thuyết chỉ đúng với duy nhất một nhóm người tiêu dùng ở một thời điểm", "Lý thuyết giữ nguyên theo thời gian, chỉ chiến lược marketing là thay đổi"], sec:"1.2.1"},
+  {q:"Theo Sơ đồ 1.1 về mô hình hành vi mua của người tiêu dùng, “Quá trình ra quyết định” gồm các bước theo thứ tự nào?", a:"Nhận biết nhu cầu → Tìm kiếm thông tin → Đánh giá các phương án → Quyết định mua → Hệ quả", w:["Tìm kiếm thông tin → Nhận biết nhu cầu → Đánh giá các phương án → Quyết định mua → Hệ quả", "Nhận biết nhu cầu → Đánh giá các phương án → Tìm kiếm thông tin → Quyết định mua → Hệ quả", "Nhận biết nhu cầu → Tìm kiếm thông tin → Quyết định mua → Đánh giá các phương án → Hệ quả"], sec:"1.2.2"},
+  {q:"Trong Sơ đồ 1.1 về mô hình hành vi mua của người tiêu dùng, yếu tố nào KHÔNG thuộc nhóm các yếu tố môi trường?", a:"Động cơ/Nhu cầu", w:["Giai tầng xã hội", "Nhóm tham khảo", "Yếu tố tình huống"], sec:"1.2.2"},
+  {q:"Sơ đồ 1.2 chia các yếu tố ảnh hưởng đến hành vi người tiêu dùng thành những nhóm nào?", a:"Văn hoá, xã hội, cá nhân và tâm lý", w:["Văn hoá, xã hội, tình huống và thông tin", "Văn hoá, cá nhân, môi trường và nhân khẩu học", "Nhóm tham khảo, gia đình, cá nhân và tâm lý"], sec:"1.2.2"},
+  {q:"Trong bốn nhóm yếu tố ảnh hưởng tới hành vi người tiêu dùng của Sơ đồ 1.2, yếu tố nào KHÔNG được xếp vào nhóm văn hoá?", a:"Nhân cách", w:["Nền văn hoá", "Nhánh văn hoá", "Sự giao lưu và biến đổi văn hoá"], sec:"1.2.2"},
+  {q:"Môn khoa học nào giải thích lựa chọn, lợi ích, chi phí và sự thỏa mãn của người tiêu dùng theo Sơ đồ 1.3?", a:"Kinh tế học", w:["Tâm lý học", "Xã hội học", "Khoa học nhân văn"], sec:"1.3.1"},
+  {q:"Theo Sơ đồ 1.3 về hành vi người tiêu dùng và các môn khoa học có liên quan, môn khoa học nào KHÔNG được nêu trong sơ đồ này?", a:"Nhân học", w:["Triết học", "Tâm lý học xã hội", "Kinh tế học"], sec:"1.3.1"},
+  {q:"Trong các nguyên tắc nghiên cứu hành vi người tiêu dùng, nguyên tắc nào yêu cầu quan sát hành vi như nó thực sự diễn ra?", a:"Tính khách quan", w:["Phân tích tổng hợp", "Tính biến đổi", "Tính chủ quan"], sec:"1.3.2.1"},
+  {q:"Một nhà nghiên cứu khi tìm hiểu hành vi tiêu dùng của sinh viên xem xét đồng thời cá nhân sinh viên, nhóm xã hội của họ và môi trường sống xung quanh. Cách làm này thể hiện nguyên tắc nghiên cứu nào?", a:"Phân tích tổng hợp", w:["Tính khách quan", "Tính biến đổi", "Tính chủ quan"], sec:"1.3.2.1"},
+  {q:"Trong ba phương pháp nghiên cứu hành vi người tiêu dùng, phương pháp nào trả lời câu hỏi “Họ NGHĨ gì?” bằng cách hỏi trực tiếp để khám phá nhận thức, thái độ, nhu cầu và ý định?", a:"Khảo sát / phỏng vấn", w:["Quan sát", "Thực nghiệm", "Nghiên cứu tài liệu thứ cấp"], sec:"1.3.2.2"},
+  {q:"Một cửa hàng so sánh tỷ lệ mua của khách hàng khi sản phẩm được bán với giá thường và khi được gắn nhãn giảm giá. Theo mục 1.3.2.2, nhà nghiên cứu đang dùng phương pháp nào?", a:"Thực nghiệm", w:["Quan sát", "Khảo sát / phỏng vấn", "Nghiên cứu tài liệu thứ cấp"], sec:"1.3.2.2"},
+  {q:"Theo mục 1.3.2.3, các bước tiến hành nghiên cứu hành vi người tiêu dùng được xếp theo thứ tự nào?", a:"Xác định vấn đề → Xây dựng kế hoạch → Thu thập thông tin → Xử lý, phân tích → Viết báo cáo", w:["Xác định vấn đề → Thu thập thông tin → Xây dựng kế hoạch → Xử lý, phân tích → Viết báo cáo", "Xây dựng kế hoạch → Xác định vấn đề → Thu thập thông tin → Xử lý, phân tích → Viết báo cáo", "Xác định vấn đề → Xây dựng kế hoạch → Xử lý, phân tích → Thu thập thông tin → Viết báo cáo"], sec:"1.3.2.3"},
+  {q:"Theo mục 1.4.1, mục tiêu của nhóm ứng dụng nghiên cứu hành vi người tiêu dùng là gì?", a:"Ứng dụng lý thuyết hành vi người tiêu dùng để phục vụ các nhiệm vụ quản lý và thực tiễn", w:["Nghiên cứu sâu hành vi người tiêu dùng để phát triển các học thuyết về hành vi con người", "Kiểm định lại các học thuyết về hành vi con người trong môi trường có kiểm soát", "Xây dựng học thuyết mới về hành vi con người thay thế các lý thuyết cũ"], sec:"1.4.1"},
+  {q:"Theo mục 1.4.1 về phạm vi ứng dụng, những ai dùng hiểu biết về hành vi người tiêu dùng để giải quyết vấn đề thực tiễn?", a:"Tổ chức marketing, chính phủ & tổ chức xã hội, người tiêu dùng", w:["Nhóm nghiên cứu, giảng viên và sinh viên các trường kinh tế", "Chuyên gia tư vấn, trình dược viên và nhân viên tiếp thị", "Khách hàng công nghiệp, khách hàng tổ chức và hộ gia đình"], sec:"1.4.1"},
+  {q:"Theo mục 1.4.2, quan hệ giữa chiến lược marketing và hành vi người tiêu dùng được thể hiện qua bốn bước theo thứ tự nào?", a:"Hiểu người tiêu dùng → Chọn đúng thị trường → Định vị đúng → Marketing-mix phù hợp", w:["Hiểu người tiêu dùng → Định vị đúng → Chọn đúng thị trường → Marketing-mix phù hợp", "Chọn đúng thị trường → Hiểu người tiêu dùng → Định vị đúng → Marketing-mix phù hợp", "Hiểu người tiêu dùng → Chọn đúng thị trường → Marketing-mix phù hợp → Định vị đúng"], sec:"1.4.2"},
+  {q:"Theo mục 1.4.2, trong tư duy chuyển từ 4P sang 4C thì Place và Promotion lần lượt ứng với chữ C nào?", a:"Convenience và Communication", w:["Cost và Convenience", "Customer Value và Cost", "Communication và Cost"], sec:"1.4.2"},
+  {q:"Nội dung của bước “Định vị” trong mối quan hệ giữa chiến lược marketing và hành vi người tiêu dùng là gì?", a:"Tạo vị trí phù hợp cho sản phẩm/thương hiệu trong tâm trí người tiêu dùng", w:["Dùng thông tin địa lý, nhân khẩu, văn hóa - xã hội, tâm lý và hành vi để phân đoạn", "Nhìn marketing-mix từ góc độ người tiêu dùng", "Lấy nhu cầu, nhận thức và hành vi thực tế của người tiêu dùng làm điểm xuất phát"], sec:"1.4.2"}
 ];
 
-const C2 = [
-  {q:"Chỉ thị “Kháng chiến kiến quốc” được ban hành vào ngày nào?", a:"25/11/1945", w:["19/12/1946","2/9/1945","6/3/1946"]},
-  {q:"Theo Chỉ thị “Kháng chiến kiến quốc”, kẻ thù chính của cách mạng Việt Nam lúc này là ai?", a:"Thực dân Pháp xâm lược", w:["Phát xít Nhật","Đế quốc Mỹ","Quân Tưởng và tay sai"]},
-  {q:"Hiệp định sơ bộ giữa Việt Nam và Pháp được ký vào ngày nào?", a:"6/3/1946", w:["28/2/1946","14/9/1946","19/12/1946"]},
-  {q:"Theo Hiệp định sơ bộ 6/3/1946, Việt Nam cho bao nhiêu quân Pháp vào thay thế quân Tưởng rút về nước?", a:"15.000 quân", w:["5.000 quân","20.000 quân","50.000 quân"]},
-  {q:"Hiệp định Trùng Khánh (28/2/1946) là thỏa thuận giữa Pháp và lực lượng nào?", a:"Chính phủ Trung Hoa Dân quốc (quân Tưởng)", w:["Đế quốc Nhật Bản","Chính phủ Anh","Liên Xô"]},
-  {q:"Tạm ước 14/9/1946 giữa Việt Nam và Pháp do ai đại diện ký?", a:"Chủ tịch Hồ Chí Minh", w:["Võ Nguyên Giáp","Phạm Văn Đồng","Trường Chinh"]},
-  {q:"Quân Pháp nổ súng đánh chiếm Sài Gòn-Chợ Lớn vào thời điểm nào?", a:"Đêm 22 rạng ngày 23/9/1945", w:["Đêm 19 rạng ngày 20/8/1945","Đêm 2 rạng ngày 3/9/1945","Đêm 25 rạng ngày 26/8/1945"]},
-  {q:"Năm 1946, Chủ tịch Hồ Chí Minh trao tặng nhân dân Nam Bộ danh hiệu nào?", a:"“Thành đồng Tổ quốc”", w:["“Anh hùng lực lượng vũ trang”","“Đất nước anh hùng”","“Dũng sĩ Điện Biên”"]},
-  {q:"Hiến pháp nước Việt Nam Dân chủ Cộng hòa được Quốc hội thông qua ngày nào?", a:"9/11/1946", w:["2/9/1945","19/12/1946","18/12/1980"]},
-  {q:"Ngày 20/11/1946, quân Pháp tấn công thành phố nào, mở đầu các hành động bội ước?", a:"Hải Phòng", w:["Hà Nội","Đà Nẵng","Huế"]},
-  {q:"Sự kiện thảm sát ở phố Hàng Bún (Hà Nội) diễn ra vào ngày nào?", a:"17/12/1946", w:["18/12/1946","19/12/1946","20/11/1946"]},
-  {q:"Cuộc kháng chiến toàn quốc chống thực dân Pháp bùng nổ vào ngày nào?", a:"19/12/1946", w:["18/12/1946","12/12/1946","20/12/1946"]},
-  {q:"Hội nghị quân sự toàn quốc lần thứ nhất diễn ra vào ngày nào?", a:"19/10/1946", w:["5/11/1946","12/12/1946","19/12/1946"]},
-  {q:"Chỉ thị “Toàn dân kháng chiến” được ban hành vào ngày nào?", a:"12/12/1946", w:["19/12/1946","5/11/1946","19/10/1946"]},
-  {q:"Chỉ thị “Công việc khẩn cấp bây giờ” được ban hành vào ngày nào?", a:"5/11/1946", w:["19/10/1946","12/12/1946","19/12/1946"]},
-  {q:"Thắng lợi Chiến dịch Biên giới Thu Đông 1950 đánh dấu bước chuyển nào của cách mạng Việt Nam?", a:"Từ giữ gìn lực lượng sang thế tiến công", w:["Từ tiến công sang phòng ngự","Từ đấu tranh nghị trường sang bạo động","Từ đấu tranh ngoại giao sang quân sự"]},
-  {q:"Chính phủ Trung Quốc công nhận và đặt quan hệ ngoại giao với Việt Nam Dân chủ Cộng hòa vào ngày nào?", a:"18/1/1950", w:["30/1/1950","2/9/1950","19/12/1950"]},
-  {q:"Liên Xô công nhận và đặt quan hệ ngoại giao với Việt Nam Dân chủ Cộng hòa vào ngày nào?", a:"30/1/1950", w:["18/1/1950","2/9/1950","19/12/1950"]},
-  {q:"Đại hội II của Đảng (2/1951) quyết định lấy tên Đảng là gì?", a:"Đảng Lao động Việt Nam", w:["Đảng Cộng sản Việt Nam","Đảng Cộng sản Đông Dương","Đảng Dân chủ Việt Nam"]},
-  {q:"Đại hội II của Đảng (2/1951) thông qua văn kiện nào?", a:"Chính cương của Đảng Lao động Việt Nam", w:["Chính cương vắn tắt, sách lược vắn tắt","Luận cương chính trị tháng 10/1930","Cương lĩnh 3/2"]},
-  {q:"Quốc hội thông qua Luật cải cách ruộng đất vào ngày nào?", a:"4/12/1953", w:["19/12/1953","21/7/1954","6/12/1953"]},
-  {q:"Tướng Nava đưa ra “kế hoạch Nava” vào tháng nào năm 1953?", a:"Tháng 7/1953", w:["Tháng 12/1953","Tháng 3/1954","Tháng 10/1952"]},
-  {q:"Kế hoạch Nava dự kiến thực hiện trong vòng bao lâu nhằm “chuyển bại thành thắng”?", a:"18 tháng", w:["6 tháng","12 tháng","24 tháng"]},
-  {q:"Bộ Chính trị quyết định mở chiến dịch Điện Biên Phủ vào ngày nào?", a:"6/12/1953", w:["13/3/1954","7/5/1954","21/7/1954"]},
-  {q:"Ai được Bộ Chính trị giao trực tiếp làm Tư lệnh kiêm Bí thư Đảng ủy chiến dịch Điện Biên Phủ?", a:"Đại tướng Võ Nguyên Giáp", w:["Đại tướng Nguyễn Chí Thanh","Trường Chinh","Hoàng Văn Thái"]},
-  {q:"Chiến dịch Điện Biên Phủ kết thúc thắng lợi vào ngày nào?", a:"7/5/1954", w:["8/5/1954","13/3/1954","21/7/1954"]},
-  {q:"Bản Tuyên bố cuối cùng về vấn đề lập lại hòa bình ở Đông Dương được ban hành vào ngày nào?", a:"21/7/1954", w:["8/5/1954","2/9/1954","7/5/1954"]},
-  {q:"Theo giáo trình, nguyên nhân căn bản nhất đưa đến thắng lợi của cuộc kháng chiến chống thực dân Pháp là gì?", a:"Có sự lãnh đạo đúng đắn của Đảng", w:["Có lực lượng vũ trang ba thứ quân chiến đấu dũng cảm","Có sự liên minh đoàn kết giữa ba dân tộc Việt Nam, Lào, Campuchia","Có chính quyền dân chủ nhân dân tổ chức toàn dân kháng chiến"]},
-  {q:"Chiến thắng kháng chiến chống Pháp có ý nghĩa quốc tế nổi bật nào?", a:"Cổ vũ các dân tộc bị nô dịch vùng lên, báo hiệu sự sụp đổ của chủ nghĩa thực dân kiểu cũ, nhất là hệ thống thuộc địa của Pháp", w:["Chấm dứt hoàn toàn chủ nghĩa đế quốc trên thế giới","Thiết lập trật tự thế giới do Mỹ đứng đầu","Đưa Liên Xô trở thành cường quốc duy nhất"]},
-  {q:"Đường lối kháng chiến toàn quốc có các đặc điểm: kháng chiến toàn dân, toàn diện, lâu dài, dựa vào sức mình là chính. Đặc điểm nào KHÔNG nằm trong đường lối?", a:"Dựa chủ yếu vào viện trợ bên ngoài", w:["Kháng chiến toàn dân","Kháng chiến toàn diện","Kháng chiến lâu dài"]},
-  {q:"Lực lượng vũ trang “ba thứ quân” gồm những thành phần nào?", a:"Bộ đội chủ lực, bộ đội địa phương, dân quân du kích", w:["Bộ đội thường trực, công an, dân quân tự vệ","Hải quân, không quân, bộ binh","Quân đoàn, sư đoàn, trung đoàn"]},
-  {q:"Đại hội III của Đảng (1960) xác định nhiệm vụ gì cho miền Bắc?", a:"Xây dựng chủ nghĩa xã hội ở miền Bắc", w:["Hoàn thành cải cách ruộng đất","Khôi phục kinh tế sau chiến tranh","Thực hiện đổi mới toàn diện"]},
-  {q:"Mặt trận Dân tộc giải phóng miền Nam Việt Nam được thành lập ngày nào?", a:"20/12/1960", w:["20/12/1961","2/9/1960","19/5/1960"]},
-  {q:"Phong trào Đồng Khởi ở miền Nam được triển khai dưới ánh sáng của nghị quyết nào?", a:"Nghị quyết Trung ương 15 (1/1959)", w:["Nghị quyết Trung ương 6 (7/1954)","Nghị quyết Trung ương 9 (12/1963)","Nghị quyết Trung ương 8 (5/1941)"]},
-  {q:"Chiến thắng Ấp Bắc (Mỹ Tho) diễn ra vào ngày nào?", a:"2/1/1963", w:["2/1/1964","2/9/1963","20/12/1960"]},
-  {q:"Hội nghị Chính trị đặc biệt tháng 9/1964 cử đại tướng nào vào miền Nam chỉ đạo cuộc kháng chiến?", a:"Nguyễn Chí Thanh", w:["Lê Duẩn","Võ Nguyên Giáp","Phạm Hùng"]},
-  {q:"Sư đoàn 9 lính thủy đánh bộ Mỹ đổ bộ vào Chu Lai vào ngày nào?", a:"8/3/1965", w:["13/8/1965","5/8/1964","8/3/1964"]},
-  {q:"Cuộc tổng tiến công và nổi dậy Tết Mậu Thân 1968 bắt đầu vào thời điểm nào?", a:"Đêm 30 rạng ngày 31/1/1968", w:["Đêm 30 rạng ngày 31/12/1967","Ngày 1/2/1968","Đêm 29 rạng ngày 30/1/1968"]},
-  {q:"Trong Tết Mậu Thân 1968, quân và dân ta đồng loạt tiến công địch ở bao nhiêu thị xã?", a:"37 thị xã", w:["27 thị xã","17 thị xã","30 thị xã"]},
-  {q:"Hiệp định Paris về Việt Nam được ký kết vào ngày nào?", a:"27/1/1973", w:["13/5/1968","29/3/1973","30/4/1975"]},
-  {q:"Ngày 29/3/1973 diễn ra sự kiện gì?", a:"Binh sĩ Mỹ cuối cùng rút khỏi miền Nam Việt Nam", w:["Chiến dịch Hồ Chí Minh bắt đầu","Hiệp định Paris được ký","Quân Mỹ ném bom miền Bắc lần cuối"]},
-  {q:"Tổng thống Mỹ nào tuyên bố ngừng mọi hoạt động phá hoại miền Bắc Việt Nam vào ngày 15/1/1973?", a:"Nixon", w:["Kennedy","Johnson","Eisenhower"]},
-  {q:"Chiến lược mà Níchxơn chủ trương thay thế “chiến tranh cục bộ” ở miền Nam là gì?", a:"“Việt Nam hóa chiến tranh”", w:["“Chiến tranh đặc biệt”","“Đông Dương hóa chiến tranh”","“Chiến tranh cục bộ” mở rộng ra miền Bắc"]},
-  {q:"Cuộc hành quân quy mô lớn “Lam Sơn 719” (1971) của Mỹ-ngụy nhằm đánh vào đâu?", a:"Đường 9 - Nam Lào", w:["Đường Trường Sơn ở Bắc Trung Bộ","Căn cứ Campuchia","Vùng Tây Nguyên"]},
-  {q:"Hội nghị Bộ Chính trị tháng 10/1974 quyết định giải phóng miền Nam trong thời gian nào?", a:"Hai năm 1975-1976", w:["Hai năm 1973-1974","Một năm 1975","Ba năm 1975-1977"]},
-  {q:"Cuộc họp Bộ Chính trị ngày 18/3/1975 quyết định giải phóng miền Nam trong năm nào?", a:"1975", w:["1976","1974","1977"]},
-  {q:"Chiến dịch Hồ Chí Minh giải phóng Sài Gòn diễn ra trong thời gian nào?", a:"26 - 30/4/1975", w:["10 - 30/3/1975","4 - 24/3/1975","21/3 - 3/4/1975"]},
-  {q:"Cuộc tổng tiến công và nổi dậy mùa xuân 1975 diễn ra từ ngày nào đến ngày nào?", a:"10/3 đến 30/4/1975", w:["1/1 đến 30/4/1975","10/3 đến 30/6/1975","4/3 đến 30/4/1975"]}
+const CH2 = [
+  {q:"Tác giả nào định nghĩa văn hóa là “tổng thể cấu trúc hành vi được biểu hiện cụ thể hay ẩn dụ mà các cá nhân trong một xã hội lĩnh hội và truyền tải thông qua trung gian là các giá trị, biểu tượng, niềm tin, truyền thống, chuẩn mực”?", a:"Linton (1992)", w:["Unesco (1992)", "Solomon (2013)", "Mothersbaugh và Oregon (2016)"], sec:"2.1"},
+  {q:"Theo Unesco (1992), văn hóa là gì?", a:"Tổng thể các hoạt động và sáng tạo trong quá khứ và trong hiện tại", w:["Tổng thể cấu trúc hành vi được lĩnh hội qua giá trị và biểu tượng", "Tập hợp các quy tắc ứng xử được luật pháp bảo vệ", "Hệ thống các nghi lễ tôn giáo của một dân tộc"], sec:"2.1"},
+  {q:"Theo Solomon (2013), văn hóa đôi khi được coi là đặc tính của cả xã hội và bao gồm những thành phần nào?", a:"Các ý tưởng trừu tượng như giá trị, đạo đức và các sự kiện, hiện tượng vật chất như xe cộ, quần áo, thức ăn, nghệ thuật", w:["Chỉ các giá trị và đạo đức phi vật chất của xã hội, tách rời hoàn toàn khỏi các sự kiện, hiện tượng vật chất", "Chỉ các sản phẩm vật chất do xã hội tiêu dùng, không kèm bất kỳ ý tưởng trừu tượng nào", "Chỉ các nghi lễ, phong tục truyền thống và mỹ tục của một tôn giáo duy nhất trong xã hội"], sec:"2.1"},
+  {q:"Một hệ thống văn hóa được cấu thành từ ba thành tố cơ bản nào?", a:"Sinh thái học, cấu trúc xã hội và hệ tư tưởng", w:["Kinh tế, chính trị và các hoạt động văn nghệ", "Sắc tộc, tôn giáo và ngôn ngữ của cộng đồng", "Gia đình, nhà trường và các phương tiện truyền thông"], sec:"2.1"},
+  {q:"Trong ba thành tố của hệ thống văn hóa, “sinh thái học” được hiểu là gì?", a:"Cách thức một hệ thống thích nghi với môi trường sống của nó", w:["Cách duy trì đời sống xã hội sao cho có trật tự", "Đặc điểm tinh thần đặc trưng của một dân tộc", "Cách phân phối của cải giữa các thành viên"], sec:"2.1"},
+  {q:"Thành tố “cấu trúc xã hội” của hệ thống văn hóa được hiểu là gì?", a:"Cách duy trì đời sống xã hội có trật tự", w:["Cách thức thích nghi với môi trường sống", "Đặc điểm tinh thần của một dân tộc", "Quan hệ buôn bán giữa các vùng miền"], sec:"2.1"},
+  {q:"Thành tố “hệ tư tưởng” của hệ thống văn hóa được hiểu là gì?", a:"Đặc điểm tinh thần của một dân tộc và cách họ liên hệ với môi trường, các nhóm xã hội của họ", w:["Cách duy trì đời sống xã hội có trật tự thông qua luật lệ và phong tục lâu đời", "Cách thức một hệ thống thích nghi dần với môi trường sống tự nhiên của chính mình theo thời gian", "Tập hợp các luật lệ thành văn do quốc gia ban hành để điều chỉnh đời sống xã hội"], sec:"2.1"},
+  {q:"Theo mục 2.1, các giá trị văn hóa quyết định những điều gì?", a:"Điều gì là đúng hay sai, điều gì có thể chấp nhận và điều gì không thể chấp nhận", w:["Giá cả bao nhiêu là hợp lý cho mỗi loại sản phẩm trên thị trường hiện nay và theo mùa", "Ai là người trực tiếp ra quyết định mua sắm trong mỗi gia đình người tiêu dùng", "Thương hiệu nào đang được giới trẻ ưa chuộng nhất trên thị trường hiện nay"], sec:"2.1"},
+  {q:"Ba loại chuẩn mực văn hóa được đề cập trong chương là gì?", a:"Phong tục, tục lệ và quy ước", w:["Phong tục, lễ hội và triết lý", "Tục lệ, pháp luật và tôn giáo", "Quy ước, đạo đức và thẩm mỹ"], sec:"2.1"},
+  {q:"Đặc điểm nào sau đây KHÔNG phải là đặc trưng cơ bản của văn hóa?", a:"Văn hóa được kế thừa theo gen di truyền", w:["Văn hóa là kết quả của quá trình học hỏi", "Văn hóa được chia sẻ", "Văn hóa vừa có tính lâu bền vừa có tính thích nghi, thay đổi"], sec:"2.1"},
+  {q:"Theo đặc trưng “văn hóa là kết quả của quá trình học hỏi”, con người tiếp thu văn hóa chủ yếu từ đâu?", a:"Gia đình, bạn bè, tổ chức và các phương tiện truyền thông", w:["Gen di truyền tiếp nhận từ cha mẹ, ông bà", "Cơ sở pháp luật do quốc gia ban hành", "Các quy định của chính quyền địa phương"], sec:"2.1"},
+  {q:"Trong các hệ thống biểu tượng của văn hóa như ngôn ngữ, tiền bạc, nghệ thuật, thành phần nào được coi là quan trọng nhất?", a:"Ngôn ngữ", w:["Tiền bạc", "Nghệ thuật", "Tôn giáo"], sec:"2.1"},
+  {q:"Đặc trưng “văn hóa được tích hợp” còn được gọi là gì và thể hiện điều gì?", a:"Chủ nghĩa tổng thể – các thành phần khác nhau của một nền văn hóa được kết nối với nhau", w:["Chủ nghĩa cá nhân – mỗi cá nhân tự xây dựng cho mình một nền văn hóa riêng biệt hoàn toàn", "Chủ nghĩa chia rẽ – các nhóm văn hóa không hề liên quan đến nhau trong xã hội", "Chủ nghĩa duy vật – mọi giá trị văn hóa đều gắn liền với sản phẩm vật chất"], sec:"2.1"},
+  {q:"Tính lâu bền của văn hóa được thể hiện như thế nào?", a:"Giá trị và chuẩn mực có tính ổn định cao, được duy trì bền vững trong các cấu trúc xã hội", w:["Giá trị và chuẩn mực của nền văn hóa luôn thay đổi liên tục theo từng mùa trong năm", "Giá trị văn hóa chỉ tồn tại đúng một thế hệ rồi mất hẳn, không được truyền lại sau đó", "Chuẩn mực văn hóa bị bãi bỏ ngay khi xã hội có hoạt động giao thương buôn bán phát triển"], sec:"2.1"},
+  {q:"Khi gia nhập thị trường Việt Nam, hãng đồ ăn nhanh Lotteria của Hàn Quốc đã làm gì để thích nghi với văn hóa ẩm thực Việt Nam?", a:"Thêm món cơm vào thực đơn", w:["Bỏ toàn bộ món chiên rán", "Chỉ bán bánh kẹp kiểu Hàn Quốc", "Ngừng bán đồ uống có sữa"], sec:"2.1"},
+  {q:"Khi muốn mở rộng chiến dịch marketing tại các thị trường đa văn hóa trong nước hoặc thị trường toàn cầu, người làm marketing phải hiểu điều gì về mỗi quốc gia?", a:"Truyền thống, phong tục và giá trị văn hóa", w:["Thể chế chính trị và quan hệ ngoại giao", "Cung cầu và giá cả thị trường", "Công nghệ sản xuất và logistics"], sec:"2.1"},
+  {q:"Theo Vu và cộng sự (2025), giá trị là gì?", a:"Niềm tin về một trạng thái mong muốn nào đó và định hướng việc lựa chọn hành vi", w:["Số tiền sẵn sàng chi cho một sản phẩm trong mỗi lần mua", "Mức độ hài lòng của khách sau khi sử dụng dịch vụ", "Đánh giá chung của xã hội về một thương hiệu cụ thể"], sec:"2.2"},
+  {q:"Hai người cùng ăn chay, một người vì muốn bảo vệ động vật, người kia vì quan tâm đến sức khỏe. Ví dụ này minh họa điều gì về giá trị và hành vi tiêu dùng?", a:"Hành vi tiêu dùng giống nhau nhưng hệ thống niềm tin cơ bản có thể khác nhau", w:["Hành vi giống nhau thì luôn phải có cùng một lý do", "Giá trị hoàn toàn không liên quan đến hành vi tiêu dùng", "Người ăn chay không hề có hệ thống niềm tin riêng"], sec:"2.2"},
+  {q:"Mỗi giá trị gồm những thành phần nào?", a:"Nhận thức, tình cảm và hành vi", w:["Giá cả, chất lượng và thương hiệu", "Cá nhân, gia đình và xã hội", "Chuẩn mực, tục lệ và quy ước"], sec:"2.2"},
+  {q:"Theo Rokeach (1973), giá trị được phân biệt thành hai cấp độ nào?", a:"Giá trị vì mục đích cuối cùng và giá trị phương tiện", w:["Giá trị cá nhân và giá trị của cộng đồng", "Giá trị vật chất và giá trị tinh thần", "Giá trị ngắn hạn và giá trị dài hạn"], sec:"2.2"},
+  {q:"Giá trị phương tiện mô tả điều gì?", a:"Những tiêu chuẩn mong muốn về tư chất đạo đức hoặc phương pháp để đạt được mục đích", w:["Trạng thái cuối cùng mà một người mong muốn đạt được trong suốt cuộc sống của mình", "Giá cả phải chăng của hàng hóa tiêu dùng trong nước trên thị trường hiện nay", "Nhu cầu ăn, mặc, ở cơ bản của mọi người dân trong xã hội hiện đại"], sec:"2.2"},
+  {q:"Giá trị vì mục đích cuối cùng đề cập đến điều gì?", a:"Trạng thái cuối cùng mà một người mong muốn đạt được", w:["Tiêu chuẩn về tư chất đạo đức để đạt mục đích", "Cách thức ứng xử trong cuộc sống hàng ngày", "Các sản phẩm cuối cùng của một ngành"], sec:"2.2"},
+  {q:"Theo Nguyễn Quốc Tuấn (2020), nhóm nào sau đây là 5 giá trị phương tiện quan trọng nhất ở Việt Nam?", a:"Tinh thần trách nhiệm, trung thực, lịch sự, tự kiểm soát bản thân, sẵn sàng giúp đỡ", w:["Gia đình an toàn, hạnh phúc, an ninh quốc gia, tự do, thế giới hòa bình", "Cảm giác đạt được thành tựu, sự tôn trọng, tình bạn chân thành, sự thông thái", "Vui vẻ, lòng can đảm, giàu trí tưởng tượng, logic, tình yêu thật sự"], sec:"2.2"},
+  {q:"Theo Nguyễn Quốc Tuấn (2020), giá trị nào KHÔNG nằm trong 5 giá trị vì mục đích cuối cùng phổ biến nhất của người Việt Nam?", a:"Cảm giác đạt được thành tựu", w:["Gia đình an toàn", "An ninh quốc gia", "Thế giới hòa bình"], sec:"2.2"},
+  {q:"Giá trị cốt lõi của một cá nhân hình thành từ những điều đầu tiên được học từ ai, ngay từ khi còn nhỏ?", a:"Ông bà, cha mẹ, thầy cô và môi trường xung quanh", w:["Đồng nghiệp, đối tác kinh doanh và khách hàng", "Bạn bè trên mạng xã hội và người theo dõi", "Cơ quan quản lý nhà nước các cấp"], sec:"2.2"},
+  {q:"Vai trò của các giá trị cốt lõi đối với hành vi của người tiêu dùng là gì?", a:"Là tiêu chuẩn định hướng hành vi trong các tình huống và lâu bền theo thời gian", w:["Một chuẩn mực chỉ áp dụng cho các giao dịch mua bán trên mạng Internet", "Một quy định bắt buộc do nhà nước ban hành trên phạm vi rộng rãi cả nước", "Một thước đo khả năng sức mua của từng nhóm khách hàng mục tiêu của doanh nghiệp"], sec:"2.2"},
+  {q:"Người tiêu dùng theo chủ nghĩa vật chất có xu hướng coi trọng điều gì?", a:"Những món đồ sang trọng như ô tô, đồ trang sức và du thuyền", w:["Các trải nghiệm du lịch mạo hiểm, khám phá thiên nhiên", "Các sản phẩm thủ công truyền thống của làng nghề", "Các dịch vụ công cộng miễn phí do nhà nước cung cấp"], sec:"2.2"},
+  {q:"Năm 2021, IKEA thực hiện chiến dịch quảng cáo toàn cầu nào, tập trung vào nhu cầu và mong đợi của người tiêu dùng về ngôi nhà?", a:"“Nhà là nơi tất cả bắt đầu”", w:["“Trồng cây, trồng trải nghiệm”", "“Chuyến tàu thanh xuân mãi mãi”", "“Thấu hiểu sẻ chia”"], sec:"2.2"},
+  {q:"Giá trị cốt lõi “nhà cửa” được thể hiện qua nhu cầu nào của nhiều nhóm người tiêu dùng?", a:"Sắm sửa cho ngôi nhà để nơi ở hấp dẫn và thoải mái nhất có thể", w:["Việc sưu tầm ô tô, du thuyền và các tài sản khác", "Việc đầu tư vàng, ngoại tệ và các kênh tài chính", "Chi tiêu cho các dịch vụ giao đồ ăn tận nhà"], sec:"2.2"},
+  {q:"Ở các nền văn hóa đề cao giá trị công việc như Mỹ hoặc Nhật, người tiêu dùng có xu hướng sẵn sàng chi tiền cho điều gì?", a:"Các dịch vụ giúp họ có nhiều thời gian giải trí hơn", w:["Các khóa học nghỉ dưỡng dài hạn ở nước ngoài", "Nội thất cao cấp nhập khẩu từ châu Âu", "Đồ ăn nhanh giàu năng lượng cho ngày bận"], sec:"2.2"},
+  {q:"Người tiêu dùng theo chủ nghĩa cá nhân coi trọng điều gì?", a:"Sự độc lập và tự chủ, đặt nhu cầu và quyền của cá nhân lên trên nhu cầu của nhóm", w:["Lợi ích của tập thể luôn đặt trên lợi ích và quyền của cá nhân", "Sự bình đẳng tuyệt đối giữa các giai tầng trong xã hội", "Việc bảo vệ môi trường sống quanh năm không gián đoạn"], sec:"2.2"},
+  {q:"Để tác động đến người tiêu dùng theo chủ nghĩa cá nhân, người làm marketing cần chú trọng những thông điệp về nội dung gì?", a:"Sự độc lập, tự chủ, tự do, khả năng tự quyết và nhận thức về thương hiệu", w:["Trách nhiệm xã hội và bảo vệ môi trường sống của cộng đồng", "Sự gắn kết gia đình, dòng họ và quê hương", "An toàn thực phẩm và sức khỏe của cộng đồng"], sec:"2.2"},
+  {q:"Để khai thác giá trị cốt lõi về sức khỏe, người làm marketing cung cấp những sản phẩm như thế nào?", a:"Thực phẩm ít chất béo, thực phẩm có lợi ích dinh dưỡng đặc biệt và sản phẩm hỗ trợ tập luyện", w:["Món ăn truyền thống nhiều dầu mỡ được chế biến theo lối cũ của người Việt", "Đồ chơi công nghệ giải trí tại nhà dành cho mọi lứa tuổi thành viên gia đình", "Thời trang cao cấp theo mùa của các thương hiệu nổi tiếng được giới trẻ săn đón"], sec:"2.2"},
+  {q:"Chiến dịch “Chuyến tàu thanh xuân mãi mãi” năm 2024 của thương hiệu dầu gội Nguyên Xuân khai thác giá trị cốt lõi nào?", a:"Tuổi trẻ", w:["Chủ nghĩa vật chất", "Môi trường", "Nhà cửa"], sec:"2.2"},
+  {q:"Chiến dịch “Trồng cây, trồng trải nghiệm” của OMO tại Việt Nam hướng đến việc tạo ra giá trị gì?", a:"Giá trị “xanh” thiết thực", w:["Giá trị vật chất bền vững", "Giá trị truyền thống dân tộc", "Giá trị công nghiệp hóa"], sec:"2.2"},
+  {q:"Lĩnh hội văn hóa là quá trình gì?", a:"Quá trình học hỏi, tiếp nhận các đặc trưng văn hóa của các cá nhân", w:["Quá trình mua bán các sản phẩm mang đậm tính văn hóa", "Quá trình nhà nước ban hành các chuẩn mực văn hóa mới", "Quá trình loại bỏ dần các giá trị văn hóa đã cũ kỹ"], sec:"2.3"},
+  {q:"Mỗi cá nhân lĩnh hội văn hóa trong khuôn khổ xã hội của họ nhờ những ai?", a:"Cha mẹ, thầy cô, bạn bè và những người thuộc nhóm tham khảo", w:["Đồng nghiệp, đối tác kinh doanh và khách hàng lâu năm", "Bạn bè trên mạng xã hội và các nhóm trực tuyến", "Cơ quan quản lý nhà nước và các tổ chức chính quyền"], sec:"2.3"},
+  {q:"Lĩnh hội văn hóa được phân loại theo hai tiêu chí nào?", a:"Theo phạm vi lĩnh hội và theo tính chất lĩnh hội", w:["Theo độ tuổi và theo giới tính của người tiêu dùng", "Theo vùng miền và theo mức thu nhập bình quân", "Theo sản phẩm và theo dịch vụ được tiêu dùng"], sec:"2.3"},
+  {q:"Lĩnh hội văn hóa chính thức diễn ra chủ yếu ở đâu?", a:"Các cơ sở giáo dục và đào tạo như trường học hoặc trung tâm đào tạo tôn giáo", w:["Không gian công cộng, ngoài đường và khu chợ truyền thống", "Quán cà phê, trung tâm thương mại và rạp chiếu phim", "Kênh mua sắm trực tuyến và các nền tảng thương mại điện tử"], sec:"2.3"},
+  {q:"Học về các lễ kỷ niệm quốc gia và ý nghĩa các ngày kỷ niệm trong trường học là ví dụ của hình thức lĩnh hội nào?", a:"Lĩnh hội văn hóa chính thức", w:["Lĩnh hội văn hóa không chính thức", "Lĩnh hội văn hóa trong vô thức", "Lĩnh hội qua giao thương"], sec:"2.3"},
+  {q:"Những vị sư đọc tăng kinh trong nhà chùa nhằm truyền tải các giá trị văn hóa của đạo Phật là ví dụ của loại lĩnh hội nào?", a:"Lĩnh hội văn hóa có ý thức", w:["Lĩnh hội văn hóa trong vô thức", "Lĩnh hội văn hóa không chính thức", "Lĩnh hội văn hóa nhóm nhỏ"], sec:"2.3"},
+  {q:"Lĩnh hội văn hóa trong vô thức xảy ra khi nào?", a:"Cá nhân tìm hiểu văn hóa qua những kênh không nhằm dạy họ, như quan sát bạn bè hay thành viên gia đình", w:["Cá nhân tham gia các khóa học văn hóa chính thức tại trường học hoặc trung tâm đào tạo", "Cá nhân nghe giảng về các chuẩn mực và giá trị văn hóa tại trung tâm đào tạo tôn giáo", "Cá nhân đọc sách về văn hóa do nhà xuất bản chính thống trong nước phát hành"], sec:"2.3"},
+  {q:"Quá trình lĩnh hội văn hóa giúp cá nhân hình thành và tiếp nhận những yếu tố nào?", a:"Chuẩn mực, giá trị, quy tắc và kỳ vọng", w:["Thu nhập, giá cả, cung và cầu", "Sản phẩm, giá, kênh và xúc tiến", "Thương hiệu, chất lượng, mẫu mã và bao bì"], sec:"2.3"},
+  {q:"Theo UNESCO (1978), tiếp biến văn hóa là quá trình như thế nào?", a:"Một nhóm người hay cá nhân, qua tiếp xúc trực tiếp và liên tục với nhóm khác, tiếp thu nền văn hóa của nhóm đó", w:["Một nhóm người áp đặt nền văn hóa của mình lên một nhóm khác bằng mệnh lệnh hành chính", "Một cá nhân đánh mất hoàn toàn nền văn hóa của mình khi ra nước ngoài sinh sống lâu dài", "Nhà nước du nhập nguyên văn toàn bộ nền văn hóa nước ngoài bằng hệ thống văn bản pháp luật"], sec:"2.3"},
+  {q:"Ở cấp độ nhóm hoặc nền văn hóa, tiếp biến văn hóa, đa văn hóa và hội nhập văn hóa đòi hỏi sự tiếp nhận rộng rãi những yếu tố nào của một nền văn hóa khác?", a:"Giá trị, tập quán, hình thức nghệ thuật và công nghệ", w:["Luật pháp, an ninh và các chính sách quốc phòng", "Tiền tệ, ngân hàng và các dịch vụ bảo hiểm", "Sản phẩm, giá cả và các kênh phân phối"], sec:"2.3"},
+  {q:"Những người đi du lịch đến vùng đất có nền văn hóa khác và ở lại đó trong thời gian dài có khả năng tham gia vào quá trình gì?", a:"Tiếp biến văn hóa ở cấp độ cá nhân", w:["Lĩnh hội văn hóa chính thức", "Đa dạng hóa sản phẩm tiêu dùng", "Phân khúc thị trường mục tiêu"], sec:"2.3"},
+  {q:"Vì sao doanh nghiệp cần hiểu sự khác biệt và thay đổi văn hóa theo quá trình giao lưu, tiếp biến?", a:"Vì giao lưu văn hóa làm thay đổi hành vi và thái độ của con người, doanh nghiệp cần thích nghi với thị trường", w:["Vì luật pháp của các nước bắt buộc mọi doanh nghiệp phải học kỹ văn hóa của nước bạn trước khi kinh doanh", "Vì sự thay đổi văn hóa làm tăng giá trị đồng tiền và mức lãi suất trong nền kinh tế quốc gia", "Vì thị trường chỉ tồn tại ở những nền văn hóa giống hệt nhau về mọi mặt"], sec:"2.3"},
+  {q:"Nhánh văn hóa được hiểu là gì?", a:"Một nhóm khác biệt trong một nền văn hóa lớn hơn, có hành vi đặc trưng từ niềm tin, giá trị, phong tục riêng", w:["Một nền văn hóa lớn bao trùm toàn xã hội, mọi thành viên có chung hệ giá trị và lối sống", "Một nhóm khách hàng được các doanh nghiệp phân loại theo mức thu nhập bình quân", "Một quy định pháp luật điều chỉnh hoạt động giao lưu văn hóa giữa các quốc gia"], sec:"2.4"},
+  {q:"Nhánh văn hóa có thể được phân chia dựa trên những cơ sở nào?", a:"Nhóm sắc tộc, tôn giáo, khu vực sống và các thế hệ thuộc nhiều nhóm tuổi", w:["Mức thu nhập, nghề nghiệp và trình độ học vấn của người mua", "Thương hiệu ưa thích và kênh mua sắm thường xuyên sử dụng", "Số lượng thành viên và cơ cấu độ tuổi trong mỗi gia đình"], sec:"2.4"},
+  {q:"Về việc một cá nhân thuộc nhiều nhánh văn hóa, khẳng định nào đúng?", a:"Mỗi cá nhân có thể thuộc nhiều nhánh văn hóa, mỗi nhánh ảnh hưởng đến những khía cạnh khác nhau trong đời sống", w:["Mỗi cá nhân chỉ được thuộc duy nhất một nhánh văn hóa trong suốt cuộc đời của mình", "Các nhánh văn hóa không hề có bất kỳ ảnh hưởng nào đến đời sống của mỗi cá nhân", "Nhánh văn hóa chỉ tác động đến quyết định mua sắm mà không ảnh hưởng đến khía cạnh khác"], sec:"2.4"},
+  {q:"Đặc điểm của các nhánh văn hóa có thể dẫn đến nhiều khác biệt trong những khía cạnh nào của người tiêu dùng?", a:"Mức độ sử dụng sản phẩm, dịch vụ, cách mua sắm và thói quen phản ứng với các hoạt động truyền thông", w:["Cách đặt tên con, chọn nghề nghiệp và mức học vấn tối thiểu của người trưởng thành", "Quy mô gia đình, mức sinh và chính sách dân số áp dụng tại từng địa phương", "Kỹ năng sản xuất, quy trình quản lý và năng lực tài chính của doanh nghiệp"], sec:"2.4"},
+  {q:"Các thành viên thuộc các nhánh văn hóa theo nhân khẩu học có đặc điểm và quy tắc riêng biệt dựa trên những yếu tố nào?", a:"Chủng tộc, ngôn ngữ hoặc quốc gia", w:["Sắc màu thương hiệu yêu thích", "Mùa thời trang và xu hướng", "Độ tin cậy của kênh phân phối"], sec:"2.4"},
+  {q:"Kênh VTV5 của Đài Truyền hình Việt Nam phát chương trình bằng 8 thứ tiếng dân tộc thiểu số là ví dụ về việc điều chỉnh marketing cho nhánh văn hóa nào?", a:"Nhánh văn hóa theo nhân khẩu học", w:["Nhánh văn hóa theo tôn giáo", "Nhánh văn hóa theo thế hệ", "Nhánh văn hóa theo nhóm thu nhập cao"], sec:"2.4"},
+  {q:"Theo chương 2, tôn giáo được coi là gì trong xã hội?", a:"Một thể chế xã hội, gồm một hệ thống niềm tin có vai trò định hướng và quy định cách thức trong cuộc sống", w:["Một phong trào giải trí đại chúng được phát sóng định kỳ trên truyền hình quốc gia", "Một quy định thuế áp dụng đối với các mặt hàng nhập khẩu từ nước ngoài", "Một kênh phân phối sản phẩm do các tổ chức quốc tế cùng nhau vận hành"], sec:"2.4"},
+  {q:"Tại Israel, McDonald's đã điều chỉnh thực đơn như thế nào để phù hợp với nhánh văn hóa tôn giáo?", a:"Loại bỏ các sản phẩm có nguồn gốc từ sữa để không vi phạm quy định ăn kiêng Kosher", w:["Tăng gấp đôi khẩu phần thịt bò trên mọi thực đơn của họ tại Israel", "Bỏ toàn bộ đồ uống có gas khỏi hệ thống nhà hàng trên toàn quốc", "Chỉ bán hàng vào các ngày cuối tuần tại thị trường Israel"], sec:"2.4"},
+  {q:"Các nhánh văn hóa theo khu vực sống thường được hình thành dựa trên những yếu tố nào?", a:"Điều kiện khí hậu, môi trường tự nhiên, tài nguyên và các nhóm người dân nhập cư cùng định cư", w:["Quy định của các tổ chức thương mại quốc tế về hàng hóa và dịch vụ lưu thông", "Sở thích âm nhạc và xu hướng giải trí của giới trẻ thành thị hiện nay", "Thị giá chứng khoán và diễn biến biến động tiền tệ trong khu vực châu Á"], sec:"2.4"},
+  {q:"Nhiều nhánh văn hóa khác nhau tạo ra sự khác biệt về những yếu tố nào của người tiêu dùng?", a:"Thái độ với sản phẩm, dịch vụ, hành vi, lối sống, giá trị và niềm tin", w:["Trình độ học vấn, bằng cấp và vị thế công việc của người lao động", "Kỹ năng sản xuất, quy trình quản lý và khả năng tài chính của doanh nghiệp", "Quy mô doanh nghiệp, vốn điều lệ và thị phần trên thị trường"], sec:"2.4"},
+  {q:"Để áp dụng marketing phù hợp với từng nhóm khách hàng đặc thù, người làm marketing cần hiểu điều gì về từng nhánh văn hóa?", a:"Những đặc điểm khác nhau về lối sống, giá trị và niềm tin của từng nhánh", w:["Cỡ chữ, màu sắc và hình ảnh minh họa trên bao bì sản phẩm", "Giá nguyên liệu nhập khẩu và chi phí vận hành của doanh nghiệp", "Thời tiết từng mùa và diễn biến khí hậu trong năm tại địa phương"], sec:"2.4"},
+  {q:"Sau hơn ba thế kỷ xây dựng và phát triển, nhánh văn hóa người Hoa ở Chợ Lớn đã tạo nên điều gì cho khu vực này?", a:"Những giá trị đặc sắc về đời sống văn hóa vật chất và tinh thần", w:["Một mô hình kinh tế kế hoạch hóa tập trung từ trên xuống", "Một trung tâm tài chính quốc tế sánh vai các nước lớn", "Một khu công nghệ cao với hệ sinh thái khởi nghiệp mới"], sec:"2.4"}
 ];
 
-const C3 = [
-  {q:"Cuộc Tổng tuyển cử bầu Quốc hội chung của nước Việt Nam thống nhất được tiến hành vào ngày nào?", a:"25/4/1976", w:["25/4/1975","25/4/1977","6/1/1946"]},
-  {q:"Hội nghị hiệp thương chính trị của đoàn đại biểu hai miền Bắc - Nam diễn ra vào thời gian nào?", a:"15 - 21/11/1975", w:["15 - 21/8/1975","15 - 21/4/1976","24/6 - 3/7/1976"]},
-  {q:"Kỳ họp thứ nhất Quốc hội nước Việt Nam thống nhất diễn ra từ ngày nào đến ngày nào?", a:"24/6 - 3/7/1976", w:["25/4 - 3/7/1976","24/6 - 3/7/1975","1/5 - 3/7/1976"]},
-  {q:"Thành phố Sài Gòn được đổi tên thành gì tại kỳ họp thứ nhất Quốc hội 1976?", a:"Thành phố Hồ Chí Minh", w:["Thành phố Sài Gòn mới","Thành phố Gia Định","Thành phố Hà Nội"]},
-  {q:"Quốc ca của nước Cộng hòa xã hội chủ nghĩa Việt Nam là bài nào?", a:"Tiến quân ca", w:["Quốc tế ca","Bài ca Điện Biên","Sông Hương"]},
-  {q:"Ai được bầu làm Chủ tịch nước tại kỳ họp thứ nhất Quốc hội 1976?", a:"Tôn Đức Thắng", w:["Trường Chinh","Phạm Văn Đồng","Lê Duẩn"]},
-  {q:"Ai được bầu làm Chủ tịch Quốc hội tại kỳ họp thứ nhất Quốc hội 1976?", a:"Trường Chinh", w:["Tôn Đức Thắng","Phạm Văn Đồng","Nguyễn Văn Linh"]},
-  {q:"Ai được bầu làm Thủ tướng Chính phủ tại kỳ họp thứ nhất Quốc hội 1976?", a:"Phạm Văn Đồng", w:["Võ Chí Công","Nguyễn Văn Linh","Đỗ Mười"]},
-  {q:"Đại hội IV của Đảng (12/1976) quyết định đổi tên Đảng Lao động Việt Nam thành gì?", a:"Đảng Cộng sản Việt Nam", w:["Đảng Cộng sản Đông Dương","Đảng Dân chủ Việt Nam","Đảng Xã hội Việt Nam"]},
-  {q:"Ai được bầu làm Tổng Bí thư tại Đại hội IV của Đảng (12/1976)?", a:"Lê Duẩn", w:["Trường Chinh","Phạm Văn Đồng","Nguyễn Văn Linh"]},
-  {q:"Theo Đại hội IV, nhiệm vụ trọng tâm của cả thời kỳ quá độ lên chủ nghĩa xã hội là gì?", a:"Đẩy mạnh công nghiệp hóa xã hội chủ nghĩa", w:["Cải cách ruộng đất","Đổi mới toàn diện","Thống nhất tiền tệ"]},
-  {q:"Theo Đại hội IV, trong ba cuộc cách mạng cần tiến hành đồng thời, cuộc cách mạng then chốt là gì?", a:"Cách mạng khoa học - kỹ thuật", w:["Cách mạng quan hệ sản xuất","Cách mạng tư tưởng và văn hóa","Cách mạng chính trị"]},
-  {q:"Nước ta quá độ lên chủ nghĩa xã hội theo đường lối Đại hội IV là bỏ qua giai đoạn nào?", a:"Phát triển tư bản chủ nghĩa", w:["Chế độ phong kiến","Chế độ thuộc địa","Chế độ nô lệ"]},
-  {q:"Hiến pháp nước Cộng hòa xã hội chủ nghĩa Việt Nam được Quốc hội thông qua ngày nào?", a:"18/12/1980", w:["2/9/1980","18/12/1976","9/11/1946"]},
-  {q:"Quân và dân Việt Nam cùng quân dân Campuchia tiến công giải phóng Phnôm Pênh, đánh đổ chế độ diệt chủng Pôn Pốt vào thời gian nào?", a:"26/12/1978 - 7/1/1979", w:["17/2 - 5/3/1979","1/5/1975 - 7/1/1979","26/12/1978 - 7/1/1980"]},
-  {q:"Trung Quốc huy động hơn 60 vạn quân mở cuộc tấn công dọc biên giới phía Bắc Việt Nam vào ngày nào?", a:"17/2/1979", w:["17/2/1978","5/3/1979","26/12/1978"]},
-  {q:"Chỉ thị 100-CT/TW (1/1981) đề ra chủ trương gì trong hợp tác xã nông nghiệp?", a:"Khoán sản phẩm đến nhóm và người lao động", w:["Xóa bỏ hợp tác xã nông nghiệp","Tập trung hóa sản xuất nông nghiệp","Cải cách ruộng đất lần hai"]},
-  {q:"Hội nghị Trung ương 6 (8/1979) được coi là gì trong quá trình đổi mới của Đảng?", a:"Bước đột phá đầu tiên đổi mới kinh tế", w:["Hoàn thành cải tạo xã hội chủ nghĩa ở miền Nam","Thực hiện tập thể hóa nông nghiệp toàn quốc","Thông qua Hiến pháp mới"]},
-  {q:"Đại hội IV dự kiến khoảng bao nhiêu năm để kết thúc thời kỳ quá độ lên chủ nghĩa xã hội?", a:"Khoảng 20 năm", w:["Khoảng 10 năm","Khoảng 30 năm","Khoảng 5 năm"]},
-  {q:"Đại hội V của Đảng khẳng định nước ta đang ở giai đoạn nào của thời kỳ quá độ?", a:"Chặng đường đầu tiên", w:["Giai đoạn hoàn thành chủ nghĩa xã hội","Giai đoạn cuối","Giai đoạn đổi mới toàn diện"]},
-  {q:"Kế hoạch 5 năm 1981-1985 (Đại hội V) coi nhiệm vụ trọng tâm là gì?", a:"Nông nghiệp", w:["Công nghiệp nặng","Xuất khẩu","Quốc phòng"]},
-  {q:"Đại hội VI của Đảng (12/1986) khởi xướng đường lối gì?", a:"Đổi mới toàn diện", w:["Công nghiệp hóa, hiện đại hóa","Cải cách ruộng đất","Xây dựng kinh tế kế hoạch hóa tập trung"]},
-  {q:"Ai được bầu làm Tổng Bí thư tại Đại hội VI của Đảng?", a:"Nguyễn Văn Linh", w:["Đỗ Mười","Lê Duẩn","Nông Đức Mạnh"]},
-  {q:"Lạm phát năm 1986 tăng lên bao nhiêu phần trăm?", a:"774%", w:["300%","67,1%","12,7%"]},
-  {q:"Bài học hàng đầu Đại hội VI đúc kết là gì?", a:"Quán triệt tư tưởng “lấy dân làm gốc”", w:["Ưu tiên phát triển công nghiệp nặng","Tập trung quyền lực vào Trung ương","Duy trì cơ chế kế hoạch hóa tập trung"]},
-  {q:"Chế độ phân phối theo tem phiếu được xóa bỏ vào thời điểm nào?", a:"Cuối năm 1988", w:["Năm 1986","Năm 1991","Năm 1995"]},
-  {q:"Luật Đầu tư nước ngoài có hiệu lực từ ngày nào?", a:"1/1/1988", w:["1/1/1990","1/1/1986","1/1/1991"]},
-  {q:"Đại hội VII của Đảng (6/1991) bầu ai làm Tổng Bí thư?", a:"Đỗ Mười", w:["Nguyễn Văn Linh","Nông Đức Mạnh","Lê Khả Phiêu"]},
-  {q:"Cương lĩnh xây dựng đất nước năm 1991 nêu bao nhiêu đặc trưng cơ bản của xã hội xã hội chủ nghĩa?", a:"6", w:["5","7","8"]},
-  {q:"Chiến lược ổn định và phát triển kinh tế - xã hội đến năm 2000 đặt mục tiêu GDP năm 2000 so với năm 1990 như thế nào?", a:"Tăng gấp đôi", w:["Tăng gấp ba","Tăng gấp bốn","Giữ nguyên"]},
-  {q:"Hội nghị đại biểu toàn quốc giữa nhiệm kỳ (1/1994) lần đầu tiên khẳng định xây dựng gì?", a:"Nhà nước pháp quyền Việt Nam của nhân dân, do nhân dân, vì nhân dân", w:["Nhà nước công nhân toàn quyền","Nhà nước tập trung dân chủ thuần túy","Nhà nước phong kiến lập hiến"]},
-  {q:"Một trong bốn nguy cơ của cách mạng được Hội nghị giữa nhiệm kỳ (1/1994) chỉ ra là gì?", a:"Tụt hậu xa hơn về kinh tế so với nhiều nước", w:["Chiến tranh xâm lược quy mô lớn","Thiếu hụt tài nguyên thiên nhiên","Bất ổn tôn giáo kéo dài"]},
-  {q:"Hội nghị Trung ương 8 khóa VIII (1/1995) đề ra trọng tâm xây dựng Nhà nước là gì?", a:"Cải cách một bước nền hành chính", w:["Cải cách tư pháp toàn diện","Cải cách tiền tệ","Cải cách quân đội"]},
-  {q:"Đại hội VIII của Đảng họp tại Hà Nội từ ngày nào đến ngày nào?", a:"28/6 - 1/7/1996", w:["28/6 - 1/7/1995","19 - 22/4/2001","18 - 25/4/2006"]},
-  {q:"Đại hội VIII đặt mục tiêu đưa nước ta cơ bản trở thành một nước công nghiệp vào thời điểm nào?", a:"Đến năm 2020", w:["Đến năm 2010","Đến năm 2030","Đến năm 2045"]},
-  {q:"Hội nghị Trung ương 2 khóa VIII (12/1996) coi quốc sách hàng đầu là gì?", a:"Giáo dục - đào tạo cùng khoa học và công nghệ", w:["Quốc phòng - an ninh","Y tế - dân số","Đối ngoại và hội nhập"]},
-  {q:"Đại hội IX của Đảng họp từ ngày nào đến ngày nào?", a:"19 - 22/4/2001", w:["19 - 22/4/2006","28/6 - 1/7/1996","12 - 19/1/2011"]},
-  {q:"Đại hội IX xác định tư tưởng Hồ Chí Minh có bao nhiêu nội dung cơ bản?", a:"9", w:["7","5","10"]},
-  {q:"Ai được bầu làm Tổng Bí thư tại Đại hội X của Đảng (4/2006)?", a:"Nông Đức Mạnh", w:["Đỗ Mười","Nguyễn Phú Trọng","Nguyễn Văn Linh"]},
-  {q:"Đại hội X bổ sung thêm đặc trưng nào vào Cương lĩnh 1991?", a:"Có Nhà nước pháp quyền xã hội chủ nghĩa của nhân dân, do nhân dân, vì nhân dân", w:["Có nền kinh tế kế hoạch hóa tập trung","Có chế độ bao cấp hoàn toàn","Có quan hệ sản xuất tư bản chủ nghĩa"]},
-  {q:"Đại hội X lần đầu tiên đặt chú trọng hàng đầu đến nhiệm vụ then chốt nào?", a:"Xây dựng, chỉnh đốn Đảng", w:["Phát triển kinh tế tri thức","Đổi mới chính trị","Hội nhập quốc tế"]},
-  {q:"Hội nghị Trung ương 3 khóa XI (6/2011) quy định bao nhiêu điều đảng viên không được làm?", a:"19", w:["10","15","25"]},
-  {q:"Đại hội XI (1/2011) đã bổ sung, phát triển văn kiện nào?", a:"Cương lĩnh xây dựng đất nước trong thời kỳ quá độ lên chủ nghĩa xã hội (1991)", w:["Cương lĩnh chính trị đầu tiên (2/1930)","Chính cương của Đảng Lao động Việt Nam (2/1951)","Luận cương chính trị tháng 10/1930"]},
-  {q:"Ai là Tổng Bí thư tại Đại hội XII của Đảng (1/2016)?", a:"Nguyễn Phú Trọng", w:["Nông Đức Mạnh","Nguyễn Văn Linh","Lê Duẩn"]},
-  {q:"Đại hội XIII của Đảng đặt mục tiêu đến giữa thế kỷ XXI nước ta trở thành nước nào?", a:"Nước phát triển, theo định hướng xã hội chủ nghĩa", w:["Nước công nghiệp hiện đại, thu nhập trung bình","Nước đang phát triển, thu nhập thấp","Nước có nền kinh tế kế hoạch hóa"]},
-  {q:"Mục tiêu đến năm 2045 (kỷ niệm 100 năm thành lập nước) là Việt Nam trở thành nước nào?", a:"Nước phát triển, thu nhập cao", w:["Nước công nghiệp hiện đại, thu nhập trung bình cao","Nước đang phát triển, công nghiệp hiện đại","Nước phát triển, thu nhập trung bình thấp"]},
-  {q:"Mục tiêu đến năm 2025 (kỷ niệm 50 năm giải phóng miền Nam) là gì?", a:"Nước đang phát triển, có công nghiệp theo hướng hiện đại, vượt qua mức thu nhập trung bình thấp", w:["Nước công nghiệp hiện đại, thu nhập cao","Nước phát triển, thu nhập trung bình cao","Nước đang phát triển, thu nhập thấp"]},
-  {q:"Ba đột phá chiến lược trong Chiến lược phát triển kinh tế - xã hội 2011-2020 gồm những gì?", a:"Hoàn thiện thể chế; kết cấu hạ tầng đồng bộ, hiện đại; phát triển nguồn nhân lực chất lượng cao", w:["Đổi mới chính trị; cải cách hành chính; xuất khẩu lao động","Công nghiệp hóa nông nghiệp; khoa học quân sự; mở rộng đô thị","Phát triển thương mại; mở cửa thị trường; thu hút vốn đầu tư nước ngoài"]},
-  {q:"Việt Nam chính thức gia nhập WTO vào năm nào?", a:"2007", w:["2000","2009","2011"]},
-  {q:"Hiệp định EVFTA mà Việt Nam ký kết là với đối tác nào?", a:"Liên minh châu Âu (EU)", w:["Hoa Kỳ","Trung Quốc","Ấn Độ"]},
-  {q:"Hiến pháp mới của Việt Nam được Quốc hội ban hành và triển khai thực hiện vào năm nào?", a:"2013", w:["1980","1992","2001"]},
-  {q:"Cuộc vận động “Học tập và làm theo tấm gương đạo đức Hồ Chí Minh” được phát động vào thời gian nào?", a:"Tháng 11/2006", w:["Tháng 5/1990","Tháng 9/2011","Tháng 2/2001"]},
-  {q:"Tỷ lệ hộ nghèo ở nước ta hiện nay được nêu là dưới bao nhiêu phần trăm dân số?", a:"3%", w:["10%","16%","30%"]}
+const CH3 = [
+  {q:"Giai tầng xã hội được hiểu là gì?", a:"Những nhóm tương đối bền chặt và đồng nhất của xã hội, cùng chia sẻ hệ thống giá trị, chuẩn mực, lối sống, sở thích và hành vi", w:["Quá trình tạo ra sự phân chia trong xã hội, trong đó các thành viên có vị thế, quyền lực và nguồn lực khác nhau", "Tập hợp những người có cùng mức thu nhập và khả năng chi tiêu giống nhau", "Nhóm người được nhà nước xếp hạng theo hộ khẩu và nơi cư trú"], sec:"3.1"},
+  {q:"Phân tầng xã hội được hiểu là gì?", a:"Quá trình tạo ra sự phân chia trong xã hội, các thành viên có vị thế, quyền lực và nguồn lực khác nhau", w:["Những nhóm tương đối bền chặt cùng chia sẻ hệ thống giá trị chuẩn mực, lối sống và hành vi", "Việc mỗi cá nhân tự đánh giá và xếp hạng vị trí của bản thân trong xã hội", "Quá trình các cá nhân di chuyển từ tầng lớp xã hội này sang tầng lớp xã hội khác"], sec:"3.1"},
+  {q:"Theo sơ đồ “Từ vị thế xã hội đến hành vi tiêu dùng”, thứ tự tác động đúng là gì?", a:"Vị trí tương đối trong xã hội → Địa vị và nguồn lực → Lối sống và sở thích → Hành vi tiêu dùng", w:["Hành vi tiêu dùng → Vị trí tương đối → Địa vị và nguồn lực → Lối sống", "Địa vị và nguồn lực → Vị trí tương đối → Hành vi tiêu dùng → Lối sống", "Lối sống và sở thích → Hành vi tiêu dùng → Vị trí tương đối → Địa vị"], sec:"3.1"},
+  {q:"Về ý nghĩa marketing, khác biệt về giai tầng xã hội tạo ra khác biệt về những điều gì?", a:"Nhu cầu, khả năng chi trả và cách thức tiêu dùng", w:["Số lượng con viên chức trong mỗi hộ gia đình tiêu dùng", "Thể chất, ngoại hình và thói quen tập luyện thể thao", "Thị thực xuất nhập cảnh và điều kiện đi lại của mỗi người"], sec:"3.1"},
+  {q:"Cùng một sản phẩm nhưng các giai tầng có thể nhìn nhận, lựa chọn và phản ứng khác nhau qua “4 lăng kính”. Bốn lăng kính đó gồm những gì?", a:"Giá trị cảm nhận và cách tiêu tiền; thế giới quan; văn hóa thị hiếu; văn hóa giao tiếp", w:["Thu nhập; nghề nghiệp; học vấn; vùng cư trú của từng cá nhân", "Tuổi; giới tính; tình trạng hôn nhân; số lượng con trong gia đình", "Giá; chất lượng; thương hiệu; xuất xứ của từng loại sản phẩm"], sec:"3.1"},
+  {q:"Trong 4 lăng kính ảnh hưởng của giai tầng, lăng kính nào thể hiện qua cách nhìn về thành công, gia đình, tương lai, rủi ro?", a:"Thế giới quan", w:["Giá trị cảm nhận và cách tiêu tiền", "Văn hóa thị hiếu", "Văn hóa giao tiếp"], sec:"3.1"},
+  {q:"Trong 4 lăng kính ảnh hưởng của giai tầng, sở thích về thời trang, nghệ thuật, nhà ở, ăn uống thuộc lăng kính nào?", a:"Văn hóa thị hiếu", w:["Thế giới quan", "Văn hóa giao tiếp", "Giá trị cảm nhận và cách tiêu tiền"], sec:"3.1"},
+  {q:"Trong 4 lăng kính ảnh hưởng của giai tầng, lăng kính nào liên quan đến cách tiếp nhận và giải mã thông điệp marketing?", a:"Văn hóa giao tiếp", w:["Văn hóa thị hiếu", "Thế giới quan", "Giá trị cảm nhận và cách tiêu tiền"], sec:"3.1"},
+  {q:"Giai tầng xã hội được cấu thành từ ba nhóm biến số nào?", a:"Nhóm kinh tế, nhóm tương tác và nhóm lập trường tư tưởng", w:["Nhóm thuần túy, nhóm pha tạp và nhóm trung gian", "Nhóm thành thị, nhóm nông thôn và nhóm di cư", "Nhóm tuổi, nhóm giới và nhóm nghề nghiệp"], sec:"3.2"},
+  {q:"Nhóm biến số kinh tế cấu thành giai tầng xã hội gồm những yếu tố nào?", a:"Tài sản/của cải, nghề nghiệp và thu nhập", w:["Uy tín cá nhân, sự giao du và kết nhóm", "Tư tưởng, ý thức hệ và quyền lực", "Tuổi tác, giới tính và trình độ ngoại ngữ"], sec:"3.2"},
+  {q:"Yếu tố nào sau đây thuộc nhóm kinh tế trong cấu trúc của giai tầng xã hội?", a:"Tài sản, của cải, nghề nghiệp và thu nhập", w:["Uy tín cá nhân, sự giao du và kết nhóm", "Tư tưởng, ý thức hệ và quyền lực", "Tuổi tác, giới tính và trình độ ngoại ngữ"], sec:"3.2"},
+  {q:"Nhóm biến số lập trường tư tưởng cấu thành giai tầng xã hội gồm những yếu tố nào?", a:"Tư tưởng/ý thức hệ và quyền lực/sự kế vị/sự thay đổi", w:["Loại nhà, nguồn thu nhập và chất lượng cuộc sống", "Sở hữu nhà, việc làm và thu nhập thuần", "Giao du, kết nhóm và uy tín cá nhân"], sec:"3.2"},
+  {q:"Ba phương pháp xác định và phân chia giai tầng xã hội là gì?", a:"Phương pháp danh tiếng, phương pháp chủ quan và phương pháp khách quan", w:["Phương pháp thống kê, phương pháp phỏng vấn và phương pháp thực nghiệm", "Phương pháp định tính, phương pháp định lượng và phương pháp hỗn hợp", "Phương pháp điều tra, phương pháp quan sát và phương pháp đo lường"], sec:"3.3"},
+  {q:"Phương pháp danh tiếng xác định giai tầng xã hội dựa trên cơ sở nào?", a:"Cá nhân trong cộng đồng đánh giá, cảm nhận và xếp hạng những thành viên khác", w:["Mỗi cá nhân tự đánh giá và xếp hạng chính bản thân mình", "Các chỉ số biến đơn hoặc phức hợp về nghề nghiệp, giáo dục, thu nhập", "Kết quả bầu chọn do chính quyền địa phương tổ chức"], sec:"3.3"},
+  {q:"Hạn chế của phương pháp danh tiếng đối với nghiên cứu tiêu dùng là gì?", a:"Chỉ giúp hiểu cấu trúc giai tầng, còn nghiên cứu tiêu dùng quan tâm tới quy mô giai tầng để hiểu thị trường", w:["Tốn quá nhiều chi phí và thời gian để thuê các chuyên gia thống kê thực hiện điều tra", "Chỉ áp dụng được cho các xã hội phương Tây đã phát triển từ lâu đời", "Không thể áp dụng khi xã hội có quá nhiều tầng lớp khác nhau cùng tồn tại"], sec:"3.3"},
+  {q:"Kết quả phân tầng theo phương pháp chủ quan phản ánh điều gì?", a:"Nhận thức của cá nhân – người ta có xu hướng tự cho mình thuộc giới cao hơn", w:["Đánh giá chính xác của cộng đồng về vị trí từng người", "Xếp hạng dựa trên chỉ số đa biến về kinh tế - xã hội", "Danh sách chính thức về thu nhập do cơ quan thuế công bố"], sec:"3.3"},
+  {q:"Phương pháp khách quan xác định giai tầng xã hội bằng cách nào?", a:"Sử dụng các chỉ số biến đơn hoặc phức hợp dựa trên nghề nghiệp, giáo dục, thu nhập, chất lượng khu vực và đánh giá về sở hữu", w:["Mỗi cá nhân tự đánh giá và xếp hạng vị trí của chính bản thân mình trong xã hội", "Các chỉ số biến đơn hoặc phức hợp về nghề nghiệp, giáo dục và thu nhập của hộ", "Kết quả bầu chọn chính thức do chính quyền địa phương tổ chức thực hiện"], sec:"3.3"},
+  {q:"Yếu tố nào sau đây KHÔNG thuộc các chỉ số đơn biến thường dùng trong phương pháp khách quan?", a:"Lượng người theo dõi trên mạng xã hội", w:["Trình độ giáo dục", "Việc làm và chuyên môn", "Sở hữu nhà ở"], sec:"3.3"},
+  {q:"Vai trò của nghề nghiệp trong phân tầng xã hội được thể hiện qua chuỗi nào?", a:"Học vấn cao → nhiều tiền → được ngưỡng mộ cao", w:["Nhiều tiền → học vấn cao → bị ganh ghét", "Được ngưỡng mộ cao → học vấn cao → nhiều tiền", "Học vấn cao → được ngưỡng mộ cao → ít tiền"], sec:"3.3"},
+  {q:"Khẳng định nào đúng về mối quan hệ giữa giai tầng xã hội và cách sử dụng thu nhập?", a:"Các giai tầng xã hội khác nhau thì cách sử dụng thu nhập cũng khác nhau", w:["Cùng giai tầng thì thu nhập và cách tiêu dùng luôn giống nhau", "Thu nhập hoàn toàn quyết định giai tầng của mỗi cá nhân", "Cách sử dụng thu nhập không liên quan gì đến giai tầng xã hội"], sec:"3.3"},
+  {q:"Chỉ số vị thế đặc trưng (các biến kinh tế - xã hội) thuộc loại chỉ số nào và gồm những biến nào?", a:"Chỉ số đa biến – gồm nghề nghiệp, nguồn thu nhập, loại nhà và chất lượng cuộc sống thành thị", w:["Chỉ số đơn biến – chỉ dựa vào riêng một mình mức thu nhập của cá nhân", "Chỉ số chủ quan – dựa vào cảm nhận của từng cá nhân về vị thế của mình", "Chỉ số danh tiếng – dựa vào đánh giá của cộng đồng về vị trí từng cá nhân"], sec:"3.3"},
+  {q:"Chỉ số vị thế kinh tế xã hội gồm những biến nào?", a:"Vị trí nghề nghiệp, thu nhập gia đình và trình độ học vấn", w:["Loại nhà, chất lượng cuộc sống thành thị và nguồn thu nhập", "Sở hữu nhà, việc làm và thu nhập thuần", "Uy tín cá nhân, sự giao du và giá trị định hướng"], sec:"3.3"},
+  {q:"Ba yếu tố cốt lõi xác định địa vị xã hội là gì?", a:"Của cải, quyền lực và uy tín", w:["Học vấn, chức vụ và lương tháng", "Tuổi tác, kinh nghiệm và thâm niên", "Thương hiệu, xe cộ và nhà cửa"], sec:"3.4"},
+  {q:"Trong ba yếu tố cốt lõi của địa vị xã hội, “của cải” được đo bằng gì?", a:"Tài sản, nguồn lực kinh tế", w:["Khả năng tác động, ảnh hưởng đến người khác", "Mức độ được xã hội công nhận, tôn trọng", "Số năm công tác trong một tổ chức"], sec:"3.4"},
+  {q:"Trong ba yếu tố cốt lõi của địa vị xã hội, “quyền lực” được hiểu là gì?", a:"Khả năng tác động, ảnh hưởng đến người khác", w:["Tài sản và nguồn lực kinh tế của cá nhân", "Mức độ được xã hội công nhận, tôn trọng", "Trình độ học vấn của cá nhân"], sec:"3.4"},
+  {q:"Trong ba yếu tố cốt lõi của địa vị xã hội, “uy tín” được hiểu là gì?", a:"Mức độ được xã hội công nhận, tôn trọng", w:["Tài sản, nguồn lực kinh tế", "Khả năng chi phối các quyết định mua", "Số lượng người quen biết trong ngành"], sec:"3.4"},
+  {q:"Về mối quan hệ giữa giai tầng và địa vị xã hội, khẳng định nào đúng?", a:"Người cùng một giai tầng vẫn có thể có địa vị khác nhau", w:["Người cùng giai tầng luôn có địa vị hoàn toàn giống nhau", "Địa vị xã hội không hề liên quan đến giai tầng", "Mỗi địa vị xã hội luôn tương ứng với một giai tầng duy nhất"], sec:"3.4"},
+  {q:"Năm đặc điểm giúp sản phẩm thể hiện địa vị của người sở hữu gồm những gì?", a:"Đắt, khan hiếm, chất lượng cao, khó am hiểu và được nhóm uy tín/địa vị cao sử dụng", w:["Rẻ, phổ biến, dễ tìm, dễ dùng và được nhiều người mua", "Nhỏ gọn, bền, tiện lợi, giá phải chăng và dễ bảo trì", "Mới ra mắt, quảng cáo nhiều, giảm giá sâu, bán online và tặng kèm"], sec:"3.4"},
+  {q:"Theo nhu cầu uy tín và địa vị, chuỗi mong muốn của người tiêu dùng được diễn đạt như thế nào?", a:"Được ngưỡng mộ → được ca tụng → được ghen tỵ → được thừa nhận", w:["Được thừa nhận → được ngưỡng mộ → được ca tụng → được ghen tỵ", "Được ghen tỵ → được ca tụng → được ngưỡng mộ → được thừa nhận", "Được ca tụng → được ghen tỵ → được ngưỡng mộ → được thừa nhận"], sec:"3.4"},
+  {q:"“Xu hướng ngược lại” trong tiêu dùng của người giàu có thực sự là gì?", a:"Họ có thể không còn quá coi trọng tiêu dùng hàng xa xỉ, mua và tiêu dùng kín đáo hơn, tránh phô bày sự giàu có", w:["Rẻ tiền, phổ biến, dễ tìm, dễ sử dụng và được số đông người mua", "Nhỏ gọn, bền bỉ, tiện lợi, giá phải chăng và dễ bảo trì sửa chữa", "Mới ra mắt, quảng cáo nhiều, giảm giá sâu, bán online và có tặng kèm"], sec:"3.4"},
+  {q:"Rào cản hạn chế hành vi giữa các giai tầng hình thành từ xu hướng nào của con người?", a:"Có thể không còn coi trọng tiêu dùng hàng xa xỉ, mua kín đáo hơn, tránh phô bày sự giàu có", w:["Họ mua thật nhiều hàng xa xỉ để mọi người xung quanh phải ngưỡng mộ và ghen tỵ", "Họ chuyển hẳn sang chỉ mua các loại hàng giá rẻ thông thường trên thị trường", "Họ thường xuyên công khai khoe của cải của mình trên mọi nền tảng mạng xã hội"], sec:"3.4"},
+  {q:"Về khả năng vượt rào cản giai tầng, marketing có thể làm gì?", a:"Định vị sản phẩm/dịch vụ để tiếp cận khách hàng thuộc nhiều giai tầng khác nhau", w:["Chỉ tập trung bán hàng cho một giai tầng duy nhất", "Buộc khách hàng thay đổi giai tầng trước khi mua sản phẩm", "Từ chốt phục vụ những giai tầng dưới trung bình"], sec:"3.4"},
+  {q:"Về dịch chuyển giai tầng, cá nhân có xu hướng như thế nào?", a:"Có thể thay đổi địa vị và có xu hướng mong muốn dịch chuyển lên giai tầng cao hơn", w:["Không bao giờ có thể thay đổi được địa vị xã hội mà mình sinh ra đã có", "Chỉ muốn duy trì nguyên vẹn giai tầng xã hội mà mình đang sinh sống", "Có xu hướng dịch chuyển xuống các giai tầng xã hội thấp hơn so với hiện tại"], sec:"3.4"},
+  {q:"Vì sao không nên đồng nhất giai tầng xã hội một cách đơn giản với thu nhập?", a:"Vì cùng mức thu nhập, các giai tầng khác nhau vẫn khác biệt đáng kể về mô hình chi tiêu và cách sử dụng sản phẩm", w:["Những nhóm bền chặt cùng chia sẻ hệ giá trị, chuẩn mực và lối sống với nhau", "Tập hợp những người có cùng mức thu nhập và khả năng chi tiêu giống nhau trong mọi thị trường", "Nhóm người được nhà nước xếp hạng theo hộ khẩu và nơi cư trú chính thức"], sec:"3.5"},
+  {q:"Với loại sản phẩm nào thì giai tầng xã hội ưu thế hơn thu nhập làm tiêu thức phân đoạn?", a:"Sản phẩm mang tính biểu tượng, phản ánh lối sống và địa vị", w:["Sản phẩm tiêu dùng thường xuyên, liên tục, cần chi phí thay thế", "Sản phẩm nông sản tươi sống bán tại chợ truyền thống", "Sản phẩm được phân phối miễn phí cho mọi tầng lớp"], sec:"3.5"},
+  {q:"Sản phẩm tiêu dùng thường xuyên, liên tục và cần chi phí thay thế nên được phân đoạn theo tiêu thức nào là ưu thế?", a:"Thu nhập", w:["Giai tầng xã hội", "Nhóm tham khảo", "Yếu tố tâm lý"], sec:"3.5"},
+  {q:"Kết hợp cả giai tầng và thu nhập phù hợp nhất với loại sản phẩm nào?", a:"Sản phẩm/dịch vụ vừa mang ý nghĩa địa vị vừa đòi hỏi khả năng chi trả", w:["Sản phẩm biểu tượng giá rẻ bán trong siêu thị", "Sản phẩm thiết yếu dùng hằng ngày không gắn địa vị", "Sản phẩm chỉ cần một trong hai yếu tố giai tầng hoặc thu nhập"], sec:"3.5"},
+  {q:"Với khách hàng thuộc tầng lớp dưới, chiến lược marketing nên ưu tiên điều gì?", a:"Giá trị chức năng, thiết yếu, mức giá phù hợp và thông điệp đơn giản, thực tế", w:["Biểu tượng địa vị, thương hiệu quốc tế và không gian sang trọng", "Giá rất cao để tạo sự khan hiếm cho sản phẩm", "Bao bì cầu kỳ và quảng cáo trên các tạp chí xa xỉ"], sec:"3.5"},
+  {q:"Ba nhóm khách hàng giàu thường được phân biệt trong marketing phân tầng là gì?", a:"Nhóm “tiền cũ”, nhóm giàu mới nổi và nhóm khá giả", w:["Nhóm tiết kiệm, nhóm đầu tư và nhóm vay nợ", "Nhóm thành thị, nhóm nông thôn và nhóm hải ngoại", "Nhóm công chức, nhóm tư nhân và nhóm kinh doanh tự do"], sec:"3.5"},
+  {q:"Nhóm khách hàng “tiền cũ” (giàu lâu năm) thường tiêu dùng theo phong cách nào?", a:"Kín đáo, thanh lịch, muốn chất lượng tốt nhưng vẫn cân nhắc tài chính, ít phô trương vật chất", w:["Chú trọng biểu tượng địa vị, chọn thương hiệu thể hiện “đúng đẳng cấp”", "Mua ồ ồ hàng giảm giá tại các siêu thị lớn", "Tiêu dùng theo các trào lưu mới nhất trên mạng xã hội"], sec:"3.5"},
+  {q:"Nhóm khách hàng “giàu mới nổi” thường chú trọng điều gì khi tiêu dùng?", a:"Biểu tượng địa vị và thương hiệu thể hiện “đúng đẳng cấp”", w:["Kín đáo, tránh phô bày và ít quan tâm thương hiệu", "Mức giảm giá và các chương trình khuyến mãi tích điểm", "Độ bền của sản phẩm hơn là hình thức bên ngoài"], sec:"3.5"},
+  {q:"Địa vị xã hội có được do sự nỗ lực của bản thân được gọi là gì?", a:"Địa vị giành được", w:["Địa vị gán cho", "Địa vị được thừa hưởng", "Địa vị bẩm sinh"], sec:"3.4"},
+  {q:"Địa vị xã hội có được từ nền tảng gia đình (vua chúa, quan chức, địa chủ) được gọi là gì?", a:"Địa vị gán cho/được thừa hưởng", w:["Địa vị giành được", "Địa vị cạnh tranh", "Địa vị danh tiếng"], sec:"3.4"},
+  {q:"“Biểu tượng của địa vị” theo thuật ngữ chương 3 là gì?", a:"Các sản phẩm/thương hiệu mang giá trị thể hiện địa vị cho người sở hữu nó", w:["Hình ảnh của cá nhân trên các phương tiện truyền thông", "Chức danh công việc được in trên danh thiếp", "Giấy chứng nhận quyền sử dụng đất của hộ gia đình"], sec:"3.4"},
+  {q:"Hiểu từng giai tầng giúp người làm marketing lựa chọn tốt hơn những yếu tố nào?", a:"Sản phẩm, giá, kênh phân phối và xúc tiến", w:["Vị trí văn phòng,logo và màu sắc nội bộ", "Số lượng nhân viên, cơ cấu tổ chức và lương thưởng", "Kế hoạch tài chính, kiểm toán và thuế"], sec:"3.5"},
+  {q:"Khi phân đoạn thị trường theo giai tầng, cần lưu ý điều gì về khách hàng cùng giai tầng?", a:"Khách hàng cùng giai tầng vẫn có thể khác nhau về hành vi mua", w:["Khách hàng cùng giai tầng luôn có hành vi mua giống hệt nhau", "Cùng giai tầng thì bắt buộc phải dùng cùng một kênh phân phối", "Giai tầng quyết định hoàn toàn hành vi mua của mỗi người"], sec:"3.5"}
 ];
+
+const CH4 = [
+  {q:"Quyết định mua của người tiêu dùng có thể dựa trên ba nguồn thông tin nào?", a:"Thông tin thương mại, thông tin từ kinh nghiệm thực tế và thông tin từ các cá nhân", w:["Thông tin nội bộ, thông tin đối thủ và thông tin báo chí", "Thông tin chính phủ, thông tư你得 và thông tin định mức", "Thông tin giá, thông tin chất lượng và thông tin khuyến mãi"], sec:"4.1"},
+  {q:"Truyền miệng (WOM) được định nghĩa là gì?", a:"Những ảnh hưởng do thông tin được truyền miệng từ người này sang người khác một cách không chính thống", w:["Nội dung quảng cáo do doanh nghiệp phát trên truyền hình", "Bản tin chính thức của cơ quan quản lý thị trường", "Thông tin được công bố tại các hội nghị triển lãm"], sec:"4.1"},
+  {q:"Theo Wang, Q và cộng sự (2023), e-WOM (truyền miệng điện tử) có thể ảnh hưởng đến điều gì?", a:"Hành vi mua hàng trực tuyến của người tiêu dùng", w:["Chính sách xuất nhập khẩu của các quốc gia", "Cơ cấu tổ chức của doanh nghiệp bán lẻ", "Giá cổ phiếu của các sàn thương mại điện tử"], sec:"4.1"},
+  {q:"Nguồn phi marketing là nguồn tin như thế nào?", a:"Đến từ một thực thể không đại diện cho doanh nghiệp và không do doanh nghiệp tạo ra", w:["Do chính doanh nghiệp tài trợ và kiểm soát nội dung", "Do cơ quan quản lý nhà nước ban hành chính thức", "Do hệ thống phân phối độc quyền công bố"], sec:"4.1"},
+  {q:"Nhóm tham khảo (reference group) được định nghĩa là gì?", a:"Nhóm người được khách hàng xem là cơ sở để so sánh, tham chiếu khi hình thành nhận thức, tình cảm và định hướng hành vi của mình", w:["Nhóm người do doanh nghiệp lập ra để nghiên cứu thị trường mục tiêu của mình một cách bài bản", "Nhóm khách hàng mua sắm cùng nhau tại một cửa hàng trong cùng một lần và cùng thanh toán", "Nhóm người bị pháp luật cấm tiếp xúc với khách hàng của doanh nghiệp trong mọi giao dịch"], sec:"4.2"},
+  {q:"Nhóm tham khảo chính thức là nhóm như thế nào?", a:"Nhóm có tổ chức, do cơ quan/tổ chức có tư cách pháp lý hoặc được xã hội công nhận lập ra, có quy tắc, mục tiêu, thứ bậc cụ thể", w:["Nhóm hình thành tự phát giữa các cá nhân dựa trên sở thích và giá trị chung, tương tác rất cá nhân", "Nhóm không có tương tác trực tiếp với khách hàng hoặc tương tác không thường xuyên với họ", "Nhóm mà người tiêu dùng không muốn giống và có xu hướng thực hiện hành vi ngược lại với nhóm"], sec:"4.2"},
+  {q:"Theo định nghĩa trong bài giảng, các nhóm như nhóm du học sinh, nhóm bà mẹ bỉm sữa được hình thành theo cách nào?", a:"Tự nhiên hoặc tự phát giữa các cá nhân dựa trên sở thích và giá trị chung, các thành viên tương tác rất cá nhân", w:["Do một tổ chức có tư cách pháp lý lập ra với hệ thống quy tắc và vai trò thứ bậc cụ thể", "Do doanh nghiệp tài trợ để nghiên cứu hành vi mua của khách hàng mục tiêu của mình", "Do cơ quan quản lý thị trường thành lập để giám sát hoạt động mua bán trong khu vực"], sec:"4.2"},
+  {q:"Đoàn thanh niên, Công đoàn, Câu lạc bộ sinh viên nghiên cứu khoa học là ví dụ của loại nhóm tham khảo nào?", a:"Nhóm tham khảo chính thức", w:["Nhóm tham khảo không chính thức", "Nhóm tẩy chay", "Nhóm thứ cấp"], sec:"4.2"},
+  {q:"Nhóm du học sinh, nhóm bà mẹ bỉm sữa là ví dụ của loại nhóm tham khảo nào?", a:"Nhóm tham khảo không chính thức", w:["Nhóm tham khảo chính thức", "Nhóm sơ cấp bắt buộc", "Nhóm dẫn dắt dư luận"], sec:"4.2"},
+  {q:"Nhóm tham khảo sơ cấp (primary reference group) là nhóm như thế nào?", a:"Nhóm có tương tác trực tiếp (mặt đối mặt) thường xuyên", w:["Nhóm không có tương tác trực tiếp hoặc tương tác không thường xuyên", "Nhóm do doanh nghiệp trả phí để quảng bá", "Nhóm chỉ tồn tại trên các nền tảng trò chơi trực tuyến"], sec:"4.2"},
+  {q:"Nhóm tham khảo thứ cấp (secondary reference group) là nhóm như thế nào?", a:"Nhóm không có tương tác trực tiếp với khách hàng hoặc tương tác không thường xuyên", w:["Nhóm có tương tác mặt đối mặt thường xuyên", "Nhóm mà cá nhân đang là thành viên chính thức", "Nhóm do pháp luật quy định bắt buộc phải tham gia"], sec:"4.2"},
+  {q:"Nhóm tham khảo mà người tiêu dùng là thành viên được gọi là gì?", a:"Nhóm tham khảo thuộc về", w:["Nhóm tẩy chay", "Nhóm ngưỡng mộ", "Nhóm thứ cấp"], sec:"4.2"},
+  {q:"Hành vi của khách hàng thuộc một nhóm tham khảo bị ảnh hưởng bởi những yếu tố nào của nhóm?", a:"Giá trị, chuẩn mực và quy tắc của nhóm", w:["Điều lệ tài chính và mức phí thành viên", "Bao bì và giá cả sản phẩm nhóm mua", "Sở thích cá nhân của người phát ngôn nhóm"], sec:"4.2"},
+  {q:"Nhóm ngưỡng mộ (nhóm truyền cảm hứng) là nhóm như thế nào?", a:"Nhóm mà người tiêu dùng chưa thuộc về nhưng rất ngưỡng mộ và có xu hướng học tập để hành vi giống như họ", w:["Nhóm mà người tiêu dùng không muốn giống và tránh hành vi như họ", "Nhóm mà người tiêu dùng buộc phải gia nhập theo quy định", "Nhóm chỉ bao gồm các thành viên trong gia đình"], sec:"4.2"},
+  {q:"Nhóm tẩy chay (dissociative reference group) là nhóm như thế nào?", a:"Nhóm có thái độ, giá trị và hành vi mà người ta không chấp nhận, không muốn liên quan và không muốn giống như vậy", w:["Nhóm mà cá nhân mong muốn được trở thành thành viên chính thức", "Nhóm có tương tác mặt đối mặt thường xuyên nhất", "Nhóm do thương hiệu lập ra cho khách hàng trung thành"], sec:"4.2"},
+  {q:"Người dẫn dắt dư luận (KOL) là người như thế nào?", a:"Người nhận được niềm tin của cộng đồng, ý kiến của họ được nhiều người khác ủng hộ, bắt chước và noi theo", w:["Người bán hàng có doanh số cao nhất trong công ty", "Người nổi tiếng xuất hiện nhiều nhất trên truyền hình", "Người quản lý diễn đàn trực tuyến có nhiều thành viên"], sec:"4.2"},
+  {q:"KOL được coi là nguồn ảnh hưởng nào và bao gồm những ai?", a:"Nguồn ảnh hưởng phi marketing – gồm các chuyên gia, bác sĩ, luật sư…", w:["Nguồn marketing – gồm nhân viên truyền thông của doanh nghiệp", "Nguồn chính phủ – gồm các quan chức quản lý thị trường", "Nguồn đối thủ – gồm người phát ngôn của công ty cạnh tranh"], sec:"4.2"},
+  {q:"KOL là một phần của “người gác cổng” (gatekeeper), có vai trò gì?", a:"Có ảnh hưởng hoặc quyền lực đặc biệt trong việc quyết định xem một sản phẩm hoặc thông tin có được công bố ra thị trường không", w:["Quyết định giá bán lẻ cuối cùng của sản phẩm trên thị trường", "Ngăn cản hoàn toàn mọi thông tin tiêu cực về doanh nghiệp", "Chịu trách nhiệm pháp lý về chất lượng sản phẩm được quảng bá"], sec:"4.2"},
+  {q:"Người dẫn dắt thị trường (maven market – MV) là người như thế nào?", a:"Chuyên gia thị trường, am hiểu chi tiết về sản phẩm, địa điểm mua sắm và thông tin mà công chúng thường không tiếp cận được", w:["Người mua sắm với tần suất cao nhất tại một siêu thị lớn trong khu vực sinh sống của mình", "Người quản lý chuỗi cửa hàng có toàn quyền quyết định nhập hàng và định giá bán lẻ", "Người nổi tiếng thường xuyên xuất hiện tại các sự kiện ra mắt sản phẩm của thương hiệu"], sec:"4.2"},
+  {q:"Trong các đặc tính của nhóm tham khảo, “mức độ liên hệ” ảnh hưởng đến hành vi người tiêu dùng như thế nào?", a:"Nhóm càng có mức độ liên hệ mật thiết cao càng có xu hướng gây ảnh hưởng lớn", w:["Nhóm càng đông thành viên thì mức liên hệ càng giảm dần", "Mức độ liên hệ không liên quan đến sức ảnh hưởng của nhóm", "Nhóm có mức liên hệ thấp thường gây ảnh hưởng mạnh hơn"], sec:"4.2"},
+  {q:"“Mức độ đồng nhất” của nhóm tham khảo được thể hiện qua điều gì?", a:"Những người trong nhóm thường có điểm giống nhau giữa các thành viên, được gọi là điểm cùng chia sẻ", w:["Số tiền mà các thành viên nhóm chi tiêu mỗi tháng", "Khả năng nhóm mua được hàng hóa với giá sỉ", "Tần suất nhóm xuất hiện trên các phương tiện truyền thông"], sec:"4.2"},
+  {q:"Khi các thành viên nhận thấy một nhóm tham khảo rất hấp dẫn, họ sẽ hành động như thế nào?", a:"Có ý định tuân theo những gì nhóm làm mạnh mẽ hơn", w:["Từ bỏ nhóm và tìm nhóm khác hấp dẫn hơn", "Công khai phản đối các chuẩn mực của nhóm", "Giảm mức độ quan tâm đến các hoạt động của nhóm"], sec:"4.2"},
+  {q:"“Sự gắn bó” – một đặc tính của nhóm tham khảo – được hiểu là gì?", a:"Mức độ quan hệ gần gũi, thân thiết, từ đó có thể kết nối mọi người với nhau", w:["Khả năng nhóm tồn tại lâu dài không giải tán", "Số lượng sản phẩm mà các thành viên mua cùng lúc", "Mức độ nổi tiếng của nhóm trên truyền thông đại chúng"], sec:"4.2"},
+  {q:"Ba loại ảnh hưởng của nhóm tham khảo tới hành vi người tiêu dùng gồm những gì?", a:"Tiếp thu thông tin, tạo ra các chuẩn mực hành vi và thể hiện giá trị bản thân", w:["Cung cấp giá cả, phân phối sản phẩm và xúc tiến thương hiệu", "Tạo động cơ, xây dựng thái độ và định hình cá tính", "Giảm giá, khuyến mãi, tích điểm và hoàn tiền"], sec:"4.3"},
+  {q:"Ảnh hưởng tiếp thu thông tin của nhóm tham khảo mang lại cho người tiêu dùng những lợi ích gì?", a:"Có thêm thông tin về sản phẩm/dịch vụ, giảm rủi ro khi quyết định và tiết kiệm thời gian tìm kiếm", w:["Giá mua được thấp hơn so với thị trường chung", "Được hoàn tiền nếu sản phẩm không phù hợp", "Tăng thu nhập nhờ tham gia hoạt động nhóm"], sec:"4.3"},
+  {q:"Trong ảnh hưởng tiếp thu thông tin, người tiêu dùng cố ý tìm kiếm thông tin từ nhóm tham khảo nhằm mục đích gì?", a:"Giảm rủi ro nhận thức được khi đưa ra quyết định hoặc giúp họ học cách thực hiện một số hành vi nhất định", w:["Tăng số lượng bạn bè trong các nhóm trực tuyến", "Được nhóm tặng sản phẩm dùng thử miễn phí", "Tránh phải trả thuế khi mua hàng nhập khẩu"], sec:"4.3"},
+  {q:"Thông tin vô tình được truyền đi từ nhóm tham khảo xảy ra trong trường hợp nào?", a:"Khi ai đó tình cờ nghe được các thành viên của nhóm nói về một sản phẩm hoặc quan sát họ sử dụng sản phẩm", w:["Khi doanh nghiệp gửi email quảng cáo đến toàn bộ thành viên nhóm", "Khi nhóm ký hợp đồng quảng bá với một nhãn hàng", "Khi thành viên nhóm được thuê để viết bài đánh giá sản phẩm"], sec:"4.3"},
+  {q:"Ảnh hưởng chuẩn mực của nhóm tham khảo xảy ra khi nào?", a:"Khi nhóm tạo ra các chuẩn mực, dẫn dắt hành vi và tạo ra sự kiểm soát bằng các phần thưởng, hình phạt quan trọng", w:["Khi nhóm cung cấp bảng giá chi tiết của các sản phẩm trên thị trường", "Khi nhóm từ chối mọi hoạt động truyền thông của doanh nghiệp", "Khi doanh nghiệp áp đặt nội quy bán hàng lên các thành viên nhóm"], sec:"4.3"},
+  {q:"Người tiêu dùng thường tuân theo mong muốn của nhóm khi hội đủ những điều kiện nào?", a:"Tin nhóm kiểm soát được phần thưởng, hình phạt; cho rằng hành vi được nhóm nhìn thấy; có động cơ đạt thưởng hoặc tránh phạt", w:["Có thu nhập cao, nhiều thời gian rảnh và thích giao tiếp với mọi người xung quanh mình", "Được nhóm miễn phí hội phí, quà tặng và ưu đãi khi mua sắm tại các cửa hàng liên kết", "Bị pháp luật bắt buộc tham gia, được doanh nghiệp yêu cầu và được gia đình khuyên bảo"], sec:"4.3"},
+  {q:"Phần thưởng và hình phạt của nhóm đối với việc tuân thủ chuẩn mực có thể là hữu hình hoặc vô hình. Ví dụ nào sau đây là vô hình?", a:"Ánh mắt ngưỡng mộ hoặc bị bàn tán sau lưng", w:["Tăng lương hoặc thưởng tiền", "Sa thải khỏi vị trí việc làm", "Khấu trừ tiền lương hàng tháng"], sec:"4.3"},
+  {q:"Chuẩn mực (norm) được định nghĩa là gì?", a:"Quy định chung của một tập thể, xác định một hành vi thế nào là thích hợp", w:["Giá bán trung bình của một nhóm sản phẩm trên thị trường", "Số lượng thành viên tối thiểu để nhóm hoạt động hợp lệ", "Mức chi phí mà mỗi thành viên phải đóng góp cho nhóm"], sec:"4.3"},
+  {q:"Người tiêu dùng có thể bị trừng phạt hoặc chế giễu nếu làm điều gì trái với tiêu chuẩn xã hội?", a:"Hút thuốc lá", w:["Đi làm đúng giờ", "Mua thực phẩm sạch", "Tập luyện thể thao buổi sáng"], sec:"4.3"},
+  {q:"Ba cách người tiêu dùng phản ứng với chuẩn mực của nhóm là gì?", a:"Tuân thủ chủ động, tuân thủ theo yêu cầu và phản kháng", w:["Đồng tình im lặng, phản đối công khai và kiện tụng", "Chấp nhận, thương lượng và tẩy chay", "Hưởng ứng, quan sát và lan truyền"], sec:"4.3"},
+  {q:"Tuân thủ chủ động (conformity) là gì?", a:"Xu hướng hành xử theo cách được nhóm mong đợi để tạo sự tương đồng", w:["Làm những gì nhóm hoặc người có ảnh hưởng yêu cầu một cách rõ ràng", "Hành động ngược lại khi cảm thấy sự tự do của mình bị đe dọa", "Từ chối tham gia mọi hoạt động chung của nhóm"], sec:"4.3"},
+  {q:"Tuân thủ theo yêu cầu (compliance) là gì?", a:"Làm những gì nhóm hoặc người có ảnh hưởng yêu cầu, một cách rõ ràng", w:["Hành xử theo cách nhóm mong đợi để tạo sự tương đồng", "Hành động ngược lại khi tự do bị đe dọa (hiệu ứng boomerang)", "Bị nhóm trừng phạt vì không tuân theo nội quy chung"], sec:"4.3"},
+  {q:"Phản kháng (reactance) là gì?", a:"Hành động ngược lại khi cảm thấy sự tự do của mình bị đe dọa (hiệu ứng boomerang)", w:["Làm theo yêu cầu rõ ràng của người có ảnh hưởng trong nhóm", "Hành xử theo cách nhóm mong đợi để tạo sự tương đồng", "Im lặng không phản hồi khi bị nhóm phê bình hành vi"], sec:"4.3"},
+  {q:"Một khách hàng từ chối mua hàng vì nhân viên bán hàng gây áp lực quá mức. Đây là ví dụ của cách phản ứng nào với chuẩn mực?", a:"Phản kháng (reactance)", w:["Tuân thủ chủ động (conformity)", "Tuân thủ theo yêu cầu (compliance)", "Tuân thủ im lặng (silent consent)"], sec:"4.3"},
+  {q:"Về khác biệt cá nhân và văn hóa trong phản ứng với chuẩn mực, khẳng định nào đúng?", a:"Người có bản sắc cá nhân mạnh dễ chống lại áp lực tuân thủ; người Nhật tuân theo mong muốn nhóm nhiều hơn người Mỹ", w:["Mọi nền văn hóa đều phản ứng với chuẩn mực của nhóm theo cách giống hệt nhau", "Người Mỹ có xu hướng tuân theo nhóm nhiều hơn hẳn người tiêu dùng Nhật Bản", "Bản sắc cá nhân càng mạnh thì con người càng dễ bị nhóm áp lực buộc phải tuân thủ"], sec:"4.3"},
+  {q:"Ảnh hưởng thể hiện giá trị bản thân của nhóm tham khảo thể hiện qua những cách nào?", a:"Tiếp cận hành vi/lối sống mới, ảnh hưởng quyết định mua sắm, tạo động lực và áp lực, ảnh hưởng thái độ/quan điểm với cộng đồng", w:["Tăng lương, thưởng tiền, sa thải và khấu trừ thu nhập", "Giảm giá, khuyến mãi, tích điểm và hoàn tiền cho thành viên", "Cấm mua, buộc mua, định giá và phân phối sản phẩm trong nhóm"], sec:"4.3"},
+  {q:"Theo Hình 4.2, nhóm tham khảo thường ảnh hưởng mạnh nhất đến quyết định mua trong trường hợp nào?", a:"Sản phẩm là hàng hóa xa xỉ (không phải thiết yếu) và được tiêu dùng/sử dụng ở nơi công cộng (dễ thấy)", w:["Sản phẩm là hàng thiết yếu và được dùng ở nơi riêng tư", "Sản phẩm giá rẻ được dùng kín đáo trong gia đình", "Sản phẩm chỉ bán cho các thành viên chính thức của nhóm"], sec:"4.3"},
+  {q:"Máy ảnh KTS, xe đạp địa hình, trang sức, giày trượt băng thuộc ô nào trong Hình 4.2 về mức ảnh hưởng của nhóm tham khảo?", a:"Hàng hóa xa xỉ được tiêu dùng ở nơi công cộng – chịu ảnh hưởng mạnh nhất của nhóm", w:["Hàng thiết yếu dùng ở nơi riêng tư – ít chịu ảnh hưởng của nhóm", "Hàng thiết yếu dùng ở nơi công cộng – chịu ảnh hưởng trung bình", "Hàng xa xỉ dùng ở nơi riêng tư – không chịu ảnh hưởng của nhóm"], sec:"4.3"},
+  {q:"Nệm, bình nóng lạnh, giấy vệ sinh, chất khử mùi thuộc ô nào trong Hình 4.2?", a:"Hàng hóa thiết yếu tiêu dùng ở nơi riêng tư – ít chịu ảnh hưởng của nhóm tham khảo", w:["Hàng xa xỉ dùng nơi công cộng – chịu ảnh hưởng mạnh nhất", "Hàng thiết yếu dùng nơi công cộng – chịu ảnh hưởng trung bình", "Hàng xa xỉ dùng nơi riêng tư – chịu ảnh hưởng mạnh"], sec:"4.3"},
+  {q:"Năm ứng dụng của việc hiểu biết nhóm tham khảo đối với người làm marketing gồm những gì?", a:"Liên kết SP với nhóm ngưỡng mộ và KOL; chọn đại diện thương hiệu; phát triển cộng đồng; tạo chuẩn mực; tạo dòng thông tin", w:["Định giá theo nhóm; chiết khấu theo nhóm; vận chuyển theo nhóm; bảo hành theo nhóm; thanh toán theo nhóm", "Nghiên cứu đối thủ; sao chép chiến dịch; giảm chi phí; tăng quảng cáo; mở rộng nhà xưởng", "Thu thập dữ liệu; thuê nhân sự; đào tạo bán hàng; mở cửa hàng; ký hợp đồng phân phối"], sec:"4.4"},
+  {q:"Nhiều quảng cáo thuốc kê đơn đề nghị người tiêu dùng tham khảo ý kiến bác sĩ, và chiến dịch NiQuitin CQ tập trung vào dược sĩ. Cách làm này khai thác vai trò nào?", a:"Chuyên gia trong ngành – người dẫn dắt dư luận có lòng tin giúp khách hàng dễ ra quyết định mua", w:["Gia đình – người ảnh hưởng áp đặt quyết định mua", "Người nổi tiếng đa ngành – nhóm tham khảo giải trí", "Cộng đồng thương hiệu – nhóm thành viên mua theo đám đông"], sec:"4.4"},
+  {q:"Cộng đồng thương hiệu (brand community) là gì?", a:"Tập hợp NTD của một thương hiệu cụ thể, kết nối với nhau trên cơ sở mối quan tâm và sự ủng hộ các sản phẩm của thương hiệu đó", w:["Nhóm người nổi tiếng được thương hiệu trả tiền để làm đại diện quảng cáo trong chiến dịch", "Cụm các cửa hàng của một thương hiệu được mở tại cùng một thành phố lớn trong khu vực", "Danh sách khách hàng thân thiết thường xuyên nhận ưu đãi giảm giá từ hệ thống cửa hàng"], sec:"4.4"},
+  {q:"Ba kỹ thuật tạo sự tuân thủ chuẩn mực qua nhóm tham khảo gồm những gì?", a:"Foot-in-the-door, in-the-face và even-a-penny-will-help", w:["Buy-one-get-one, flash-sale và bundle-offer", "Loyalty-card, cashback và member-price", "Free-trial, trade-in và gift-voucher"], sec:"4.4"},
+  {q:"Kỹ thuật “foot-in-the-door” hoạt động như thế nào?", a:"Khiến cá nhân đồng ý một việc nhỏ trước, sau đó là việc lớn hơn – ví dụ mời khách thử áo rồi gợi ý mua thêm chân váy, phụ kiện", w:["Yêu cầu một việc rất lớn (gần thái quá) trước, sau đó mới đến yêu cầu nhỏ hợp lý hơn", "Yêu cầu một việc rất nhỏ – nhỏ đến mức gần như không được coi là một điều phải làm", "Tặng miễn phí sản phẩm để khách hàng giới thiệu thêm bạn bè"], sec:"4.4"},
+  {q:"Kỹ thuật “in-the-face” hoạt động như thế nào?", a:"Yêu cầu một việc lớn (gần thái quá) trước, sau đó mới đến yêu cầu nhỏ hợp lý hơn, như hỏi trang sức 500 USD rồi bông tai 25 USD", w:["Khiến cá nhân đồng ý một việc rất nhỏ trước rồi mới nâng dần lên các yêu cầu lớn hơn nhiều", "Thu tiền cho tổ chức từ thiện với thông điệp “dù chỉ một xu cũng giúp được người cần”", "Gửi quà tặng miễn phí để tạo thiện cảm rồi mới bắt đầu chào hàng các sản phẩm chính"], sec:"4.4"},
+  {q:"Về sức thuyết phục của truyền miệng (WOM), số liệu nào được nêu trong bài giảng?", a:"Hơn 40% người Mỹ hỏi ý kiến bạn bè khi chọn bác sĩ, luật sư, thợ sửa xe; WOM thuyết phục hơn cả thông tin viết sẵn", w:["Hơn 40% người Mỹ chỉ tin quảng cáo trên truyền hình khi chọn sản phẩm", "Hơn 40% người Mỹ không bao giờ tham khảo ý kiến bất kỳ ai", "WOM chỉ có tác dụng với hàng tiêu dùng nhanh, không tác dụng với dịch vụ"], sec:"4.4"},
+  {q:"Về kết hợp ảnh hưởng thông tin và chuẩn mực, số liệu về hiến máu cho thấy điều gì?", a:"Chỉ 2% hiến máu khi không có ảnh hưởng; 4–8% khi có một loại ảnh hưởng; 22% khi có cả hai cùng tác động", w:["2% hiến máu khi có cả hai loại ảnh hưởng cùng tác động", "22% hiến máu ngay cả khi không có bất kỳ ảnh hưởng nào", "4–8% hiến máu khi có đủ cả hai loại ảnh hưởng cùng lúc"], sec:"4.4"},
+  {q:"Khi bị tin đồn nhảm tấn công, doanh nghiệp có bốn cách phản ứng. Cách “làm kín đáo” được minh họa bằng ví dụ nào?", a:"P&G gửi thông tin phản bác tin đồn “biểu tượng người trong mặt trăng” chỉ cho những người gọi đến đường dây nóng của hãng", w:["Nike ban đầu không phản ứng mạnh trước cáo buộc điều kiện lao động", "Interbake Foods xác thực nguồn gốc bánh quy Sailor Boy Pilot Bread trực tiếp", "Các công ty dầu mỏ chạy chiến dịch PR nêu bật hoạt động xã hội"], sec:"4.4"},
+  {q:"Sau khủng hoảng tin đồn, công ty nên làm gì để khôi phục niềm tin?", a:"Theo dõi nguồn phát tán, đồng thời cảm ơn hoặc khen thưởng những cá nhân truyền miệng tích cực và cung cấp thông tin đúng", w:["Ngừng toàn bộ hoạt động truyền thông đến khi tin đồn tự lắng xuống", "Chỉ gữi thông tin phản bác cho các cơ quan báo chí lớn", "Buộc mọi nhân viên ký cam kết không thảo luận về tin đồn"], sec:"4.4"},
+  {q:"Influencer ảo (virtual influencer/CGI influencer) là gì?", a:"Nhân vật được tạo nên từ công nghệ mô phỏng hình ảnh (CGI), dùng trong phim ảnh, truyền hình để tạo hiệu ứng đặc biệt", w:["Người thật thường xuyên sử dụng các hiệu ứng lọc ảnh khi phát trực tiếp trên nền tảng số", "Người nổi tiếng thuê công ty chuyên nghiệp để quản lý hình ảnh trên trang mạng xã hội", "Diễn viên chuyên lồng tiếng cho các nhân vật hoạt hình được nhiều khán giả yêu thích"], sec:"4.5"},
+  {q:"Theo Arsenyan và Mirowska (2021), influencer ảo về ngoại hình được phân thành ba nhóm nào?", a:"Mô phỏng người thật, phong cách hoạt hình và không giống người", w:["Người thật, người đã mất và người hư cấu", "Thời trang, mỹ phẩm và công nghệ", "Trẻ em, thanh thiếu niên và người lớn tuổi"], sec:"4.5"},
+  {q:"Lil Miquela, Shudu Gram thuộc nhóm influencer ảo nào về ngoại hình?", a:"Mô phỏng người thật – chân thực cao, khó phân biệt với người thật, dễ gây tranh cãi về sự “giả tạo”", w:["Phong cách hoạt hình – mắt, tỷ lệ khác người thật, dễ tạo thiện cảm", "Không giống người – hình dạng robot, động vật, sinh vật ngoài hành tinh", "Người thật – các blogger nổi tiếng sử dụng hình ảnh thật"], sec:"4.5"},
+  {q:"Noonoouri, Guggimon thuộc nhóm influencer ảo nào về ngoại hình?", a:"Phong cách hoạt hình – thiết kế theo phong cách hoạt hình, anime hoặc đồ họa 3D cách điệu", w:["Mô phỏng người thật – chân thực đến khó phân biệt với người thật", "Không giống người – hình dạng robot hoặc sinh vật ngoài hành tinh", "Linh vật thương hiệu – đại diện duy nhất cho một thương hiệu"], sec:"4.5"},
+  {q:"Về vai trò, influencer ảo do công ty công nghệ hoặc tổ chức quản lý tạo ra nhằm cung cấp nội dung giải trí, truyền tải thông điệp quảng cáo được gọi là gì?", a:"Influencer ảo thương mại", w:["Influencer ảo phi thương mại", "Linh vật thương hiệu (brand mascot)", "Người dẫn dắt dư luận (KOL)"], sec:"4.5"},
+  {q:"Linh vật thương hiệu (brand mascot) trong ngữ cảnh influencer ảo là gì?", a:"Nhân vật được thiết kế riêng, đại diện duy nhất cho một thương hiệu, gắn liền chiến lược dài hạn, không hợp tác thương hiệu khác", w:["Nhân vật do cá nhân sáng tạo kỹ thuật số nhằm cung cấp nội dung giải trí thuần túy", "Nhân vật được thiết kế theo hình dạng robot, động vật hoặc sinh vật ngoài hành tinh", "Nhân vật mô phỏng người thật với mức độ chân thực cao nhất trong ba nhóm ngoại hình"], sec:"4.5"},
+  {q:"Ba đặc trưng của influencer ảo là gì?", a:"Chuyên nghiệp, biến hóa đa dạng và bền bỉ, dẻo dai", w:["Nhanh, rẻ, đẹp", "Thân thiện, nổi tiếng, giàu có", "Trẻ trung, hiện đại, năng động"], sec:"4.5"},
+  {q:"Đặc trưng “biến hóa đa dạng” của influencer ảo thể hiện qua điều gì?", a:"Không bị giới hạn bởi hình thể hay cảm xúc cá nhân, dễ “xử lý” nhiều phong cách thời trang, hóa thân đại diện nhiều nền văn hóa", w:["Duy trì hiện diện trực tuyến ổn định, liên tục nhờ đội ngũ kỹ sư và chuyên gia marketing", "Kể được câu chuyện cá nhân và thể hiện cảm xúc thật giống như một con người thực thụ", "Yêu cầu mức thù lao thấp hơn người thật khi tham gia các chiến dịch quảng cáo dài hạn"], sec:"4.5"},
+  {q:"Đâu là một CƠ HỘI khi sử dụng influencer ảo trong marketing?", a:"Hoạt động 24/7, không giới hạn ngôn ngữ/múi giờ, tương tác với lượng lớn khách hàng cùng lúc và đảm bảo phản hồi đồng nhất", w:["Thiếu cảm xúc thật nên khó tạo kết nối tự nhiên như giữa người với người", "Người tiêu dùng dè dặt vì tin tưởng influencer thật có câu chuyện thật", "Ngoại hình hoàn hảo khiến NTD áp lực khi so sánh với thực tế"], sec:"4.5"},
+  {q:"Đâu là một THÁCH THỨC khi sử dụng influencer ảo trong marketing?", a:"Bài toán đạo đức – nguy cơ bị lạm dụng để thao túng nhận thức người tiêu dùng mà không bị ràng buộc trách nhiệm như người thật", w:["Không giới hạn thời gian, sức khỏe nên dễ “sống” trong không gian AI, VR, AR, metaverse", "Dễ thiết kế riêng để thể hiện đúng hình ảnh và giá trị cốt lõi thương hiệu", "Giảm rủi ro về danh tiếng, bê bối và sở hữu trí tuệ cho thương hiệu"], sec:"4.5"},
+  {q:"Sự dè dặt của người tiêu dùng với influencer ảo xuất phát từ lý do nào?", a:"NTD tin influencer thật vì có câu chuyện, cảm xúc, trải nghiệm thật; influencer ảo theo kịch bản nên khó tạo đồng cảm thật", w:["Influencer ảo luôn đòi hỏi mức thù cao hơn người thật rất nhiều trong từng hợp đồng", "Người tiêu dùng bị cấm theo dõi influencer ảo theo quy định pháp luật hiện hành", "Influencer ảo chỉ xuất hiện trên những nền tảng không phổ biến với đa số người dùng"], sec:"4.5"}
+];
+
+const CH5 = [
+
+];
+
+const CH6 = [
+
+];
+
+const CH7 = [
+
+];
+
+const CH8 = [
+
+];
+
+const CH9 = [
+
+];
+
+const CH10 = [
+
+];
+
+const CH11 = [
+
+];
+
+
+// Cau hoi moi cau deu co "sec" = so muc trong chuong (vd "2.3", "10.1.2").
+// Bo phan nay mo ta dung cac muc se ra trac nghiem trong de cuoi ky (de cuong on tap cua giang vien),
+// va cac muc trong tam (duoc to vang trong de cuong).
+const EXAM_SCOPE = {
+  1:["1.1"], 2:["2.1","2.2","2.3","2.4"], 3:["3.2","3.4"], 4:["4.2","4.3"], 5:["5.2","5.4"],
+  6:["6.1.1","6.2.1","6.3"], 7:["7.1","7.2"], 8:["8.1","8.2"], 9:["9.1","9.2"],
+  10:["10.1.2","10.2.2"], 11:["11.2","11.3"]
+};
+const EXAM_FOCUS = {
+  2:["2.2","2.3","2.4"], 3:["3.2","3.4"], 4:["4.2","4.3"], 5:["5.2","5.4"], 6:["6.2.1","6.3"],
+  7:["7.1","7.2"], 8:["8.1","8.2"], 9:["9.1","9.2"], 10:["10.1.2","10.2.2"]
+};
+// So cau bai tong hop moi chuong (tong = 40), ty le theo so muc ra de cua tung chuong.
+const MIX_PLAN = {1:2, 2:6, 3:4, 4:4, 5:4, 6:4, 7:3, 8:3, 9:3, 10:4, 11:3};
 
 const CHAPTERS = [
-  {name:"Chương nhập môn: Đối tượng, chức năng, nhiệm vụ và phương pháp nghiên cứu Lịch sử Đảng", bank:NHAPMON},
-  {name:"Chương 1: Đảng Cộng sản Việt Nam ra đời và lãnh đạo đấu tranh giành chính quyền (1930-1945)", bank:BANK},
-  {name:"Chương 2: Đảng lãnh đạo hai cuộc kháng chiến chống ngoại xâm, hoàn thành giải phóng dân tộc (1945-1975)", bank:C2},
-  {name:"Chương 3: Đảng lãnh đạo xây dựng đất nước trong thời kỳ quá độ lên chủ nghĩa xã hội (1975-2021)", bank:C3},
-  {name:"Giới thiệu học phần (chưa có câu hỏi)", bank:[]}
+  {ch:0, name:"Chương 0: Giới thiệu học phần", bank:CH0, mix:false},
+  {ch:1, name:"Chương 1: Tổng quan về hành vi người tiêu dùng", bank:CH1},
+  {ch:2, name:"Chương 2: Văn hóa và hành vi người tiêu dùng", bank:CH2},
+  {ch:3, name:"Chương 3: Giai tầng xã hội và hành vi người tiêu dùng", bank:CH3},
+  {ch:4, name:"Chương 4: Nhóm tham khảo", bank:CH4},
+  {ch:5, name:"Chương 5: Gia đình và hành vi người tiêu dùng", bank:CH5},
+  {ch:6, name:"Chương 6: Giá trị chuẩn mực, cá tính & lối sống của người tiêu dùng", bank:CH6},
+  {ch:7, name:"Chương 7: Nhu cầu và động cơ của người tiêu dùng", bank:CH7},
+  {ch:8, name:"Chương 8: Kiến thức, sự hiểu biết và nhận thức của người tiêu dùng", bank:CH8},
+  {ch:9, name:"Chương 9: Thái độ của người tiêu dùng", bank:CH9},
+  {ch:10, name:"Chương 10: Quá trình ra quyết định mua của người tiêu dùng", bank:CH10},
+  {ch:11, name:"Chương 11: Hành trình trải nghiệm của người tiêu dùng", bank:CH11}
 ];
-let currentChapter = 0;
 
-const QUESTION_COUNT = 30;
-const TIME_LIMIT = 50 * 60;
-const HISTORY_KEY = "quizHistory";
+const MODE_CHAPTER = {title:"Luyện chương", count:30, minutes:50, scale:30};
+// Bai tong hop = dung phan trac nghiem cua de cuoi ky: 40 cau - 8 diem (0,2 diem/cau), bo tu luan.
+const MODE_MIX = {title:"Tổng hợp", count:40, minutes:90, scale:8};
+const HISTORY_KEY = "hvntdQuizHistory";
+let currentRun = null;
 let session = null;
 
 function shuffle(arr) {
@@ -370,6 +439,47 @@ function shuffle(arr) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+
+// Mot cau thuoc pham vi de khi "sec" trung mot muc trong EXAM_SCOPE, hoac la muc
+// cha/con cua no (vd sec "6.1" van tinh thuoc muc "6.1.1").
+function inScope(ch, sec) {
+  if (!sec) return false;
+  return (EXAM_SCOPE[ch] || []).some(s => s === sec || sec.startsWith(s + ".") || s.startsWith(sec + "."));
+}
+
+// Chon cau cho bai tong hop theo MIX_PLAN: trong moi chuong, uu tien ~2/3 so cau
+// tu cac muc trong tam (EXAM_FOCUS), phan con lai lay tu cac muc ra de khac.
+function pickMix() {
+  const picked = [];
+  let deficit = 0;
+  for (let ch = 1; ch <= 11; ch++) {
+    const pool = shuffle(CHAPTERS[ch].bank.filter(x => inScope(ch, x.sec)));
+    const focus = EXAM_FOCUS[ch] || [];
+    const fPool = pool.filter(x => focus.includes(x.sec));
+    const rPool = pool.filter(x => !focus.includes(x.sec));
+    const target = MIX_PLAN[ch];
+    const wantFocus = Math.min(fPool.length, Math.ceil(target * 2 / 3));
+    let sel = fPool.slice(0, wantFocus);
+    sel = sel.concat(rPool.slice(0, target - sel.length));
+    if (sel.length < target) {
+      const used = new Set(sel);
+      sel = sel.concat(pool.filter(x => !used.has(x)).slice(0, target - sel.length));
+    }
+    if (sel.length < target) deficit += target - sel.length;
+    picked.push(...sel);
+  }
+  // Chua du cau (ngan hang con it) -> bu tu cac chuong con du cau trong pham vi de.
+  if (deficit) {
+    for (let ch = 1; ch <= 11 && deficit > 0; ch++) {
+      const used = new Set(picked);
+      const spare = shuffle(CHAPTERS[ch].bank.filter(x => inScope(ch, x.sec) && !used.has(x)));
+      const add = spare.slice(0, Math.min(deficit, 2));
+      picked.push(...add);
+      deficit -= add.length;
+    }
+  }
+  return shuffle(picked);
 }
 
 function showScreen(id) {
@@ -389,11 +499,11 @@ function renderHistory() {
   const h = getHistory();
   const tb = document.getElementById("historyBody");
   if (!h.length) {
-    tb.innerHTML = '<tr><td colspan="5">Chưa có lịch sử làm bài.</td></tr>';
+    tb.innerHTML = '<tr><td colspan="6">Chưa có lịch sử làm bài.</td></tr>';
     return;
   }
   tb.innerHTML = h.map((r, i) =>
-    `<tr><td>${h.length - i}</td><td>${r.date}</td><td><b>${r.score}</b>/30</td><td>${r.correct}/${r.total}</td><td>${fmt(r.timeUsed)}</td></tr>`
+    `<tr><td>${h.length - i}</td><td>${r.date}</td><td>${r.title}</td><td><b>${r.score}</b>/${r.scale}</td><td>${r.correct}/${r.total}</td><td>${fmt(r.timeUsed)}</td></tr>`
   ).join("");
 }
 
@@ -409,10 +519,28 @@ function goHome() {
   showScreen("home");
 }
 
+function mixChapters() {
+  return CHAPTERS.map((c, i) => i).filter(i => CHAPTERS[i].bank.length && CHAPTERS[i].mix !== false);
+}
+
+function runTitle(chapters, mode) {
+  if (mode === MODE_MIX) return mode.title;
+  return chapters.map(i => "Ch." + CHAPTERS[i].ch).join(" + ");
+}
+
 function renderChapters() {
   document.getElementById("chapterButtons").innerHTML = CHAPTERS.map((c, i) =>
     `<label class="chapter-item${c.bank.length ? "" : " disabled"}"><input type="checkbox" value="${i}" ${c.bank.length ? "" : "disabled"}> ${c.name}${c.bank.length ? ` (${c.bank.length} câu)` : " (chưa có câu hỏi)"}</label>`
   ).join("") + `<button class="btn success" onclick="startQuiz()">Bắt đầu làm bài</button>`;
+
+  const avail = mixChapters().reduce((t, i) => t + CHAPTERS[i].bank.filter(x => inScope(CHAPTERS[i].ch, x.sec)).length, 0);
+  const head = avail < MODE_MIX.count
+    ? `Ngân hàng câu hỏi đang được bổ sung (hiện có <b>${avail}</b> câu trong phạm vi đề), nên bài tổng hợp hiện lấy <b>${Math.min(avail, MODE_MIX.count)} câu – thang ${MODE_MIX.scale} điểm</b>. Khi đủ dữ liệu, bài sẽ giống cấu trúc phần trắc nghiệm đề cuối kỳ: <b>${MODE_MIX.count} câu – ${MODE_MIX.scale} điểm</b> (0,2 điểm/câu), không gồm phần tự luận.`
+    : `Giống cấu trúc phần trắc nghiệm của đề cuối kỳ: <b>${MODE_MIX.count} câu – ${MODE_MIX.scale} điểm</b> (mỗi câu đúng được 0,2 điểm), không gồm phần tự luận. Câu hỏi lấy từ các mục sẽ ra đề của Chương 1–11, ưu tiên nội dung trọng tâm.`;
+  document.getElementById("mixInfo").innerHTML =
+    `${head} Thời gian làm bài: <b>${MODE_MIX.minutes} phút</b>.`;
+  document.getElementById("chapterInfo").innerHTML =
+    `Chọn một hoặc nhiều chương (tích chọn) rồi nhấn “Bắt đầu làm bài”: mỗi bài <b>${MODE_CHAPTER.count} câu</b> lấy ngẫu nhiên từ các chương đã chọn · Thời gian làm bài: <b>${MODE_CHAPTER.minutes} phút</b> · Thang điểm: <b>${MODE_CHAPTER.scale}</b> (mỗi câu đúng được 1 điểm).`;
 }
 
 function selectedChapters() {
@@ -425,19 +553,34 @@ function startQuiz() {
     alert("Hãy chọn ít nhất một chương.");
     return;
   }
-  currentChapter = sel;
-  const pool = sel.flatMap(i => CHAPTERS[i].bank);
-  const items = shuffle([...pool]).slice(0, QUESTION_COUNT).map(x => {
+  begin(sel, MODE_CHAPTER);
+}
+
+function startMix() {
+  begin(mixChapters(), MODE_MIX);
+}
+
+function restart() {
+  begin(currentRun.chapters, currentRun.mode);
+}
+
+function begin(chapters, mode) {
+  const banks = chapters.map(i => CHAPTERS[i].bank);
+  const pool = mode === MODE_MIX ? pickMix() : shuffle(banks.flat()).slice(0, mode.count);
+  const items = pool.map(x => {
     const opts = shuffle([x.a, ...x.w]);
     return { q: x.q, opts, correct: opts.indexOf(x.a) };
   });
   const now = Date.now();
+  currentRun = { chapters, mode };
   session = {
+    title: runTitle(chapters, mode),
+    mode,
     items,
     answers: Array(items.length).fill(-1),
     current: 0,
     start: now,
-    end: now + TIME_LIMIT * 1000,
+    end: now + mode.minutes * 60 * 1000,
     timer: null,
     done: false
   };
@@ -459,7 +602,7 @@ function tick() {
 function renderQuestion() {
   const s = session, i = s.current, it = s.items[i];
   const answered = s.answers.filter(a => a >= 0).length;
-  document.getElementById("progressLabel").textContent = `Câu ${i + 1}/${s.items.length} · Đã làm ${answered}/${s.items.length}`;
+  document.getElementById("progressLabel").textContent = `${s.title} · Câu ${i + 1}/${s.items.length} · Đã làm ${answered}/${s.items.length}`;
   document.getElementById("progressBar").style.width = (answered / s.items.length * 100) + "%";
   document.getElementById("qText").textContent = `Câu ${i + 1}. ${it.q}`;
 
@@ -512,9 +655,9 @@ function submitQuiz(auto) {
 
   const s = session, n = s.items.length;
   const correct = s.items.reduce((c, it, i) => c + (s.answers[i] === it.correct ? 1 : 0), 0);
-  const score = Math.round(correct / n * 30 * 100) / 100;
-  const timeUsed = Math.min(TIME_LIMIT, Math.round((Date.now() - s.start) / 1000));
-  const rec = { date: new Date().toLocaleString("vi-VN"), score, correct, total: n, timeUsed };
+  const score = Math.round(correct / n * s.mode.scale * 100) / 100;
+  const timeUsed = Math.min(s.mode.minutes * 60, Math.round((Date.now() - s.start) / 1000));
+  const rec = { date: new Date().toLocaleString("vi-VN"), title: s.title, score, scale: s.mode.scale, correct, total: n, timeUsed };
 
   const h = getHistory();
   h.unshift(rec);
@@ -525,9 +668,9 @@ function submitQuiz(auto) {
 
 function showResult(rec, auto) {
   showScreen("result");
-  document.getElementById("scoreText").textContent = `${rec.score} / 30`;
+  document.getElementById("scoreText").textContent = `${rec.score} / ${rec.scale}`;
   document.getElementById("resultInfo").textContent =
-    `Đúng ${rec.correct}/${rec.total} câu · Thời gian làm: ${fmt(rec.timeUsed)}` +
+    `${rec.title} · Đúng ${rec.correct}/${rec.total} câu · Thời gian làm: ${fmt(rec.timeUsed)}` +
     (auto ? " (hết giờ, bài được nộp tự động)" : "");
 
   const s = session;
